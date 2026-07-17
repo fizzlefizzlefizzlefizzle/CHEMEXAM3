@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- PWA manifest — required for "Add to Home Screen" -->
+<link rel="manifest" href="manifest.json">
+<!-- iOS standalone mode -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CHEM 305">
+<!-- iOS touch icon (shown on home screen) -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Android theme colour -->
+<meta name="theme-color" content="#0f1117">
+<!-- viewport-fit=cover lets content reach under the notch/Dynamic Island;
+     we then push content down with env(safe-area-inset-*) in CSS -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CHEM 305 Exam 3 Study App</title>
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3352;--accent:#5b8dee;--accent2:#a78bfa;--accent3:#34d399;--danger:#f87171;--warn:#fbbf24;--text:#e8eaf0;--text-dim:#8891b0;--text-faint:#505878;--ch8:#5b8dee;--ch9:#a78bfa;--ch10:#34d399;--radius:12px;--radius-sm:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:4px;position:sticky;top:0;z-index:100;overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 -100px 0 100px var(--surface)}
+.top-nav h1{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;padding:14px 12px 14px 4px;border-right:1px solid var(--border);margin-right:4px}
+.nav-btn{background:none;border:none;color:var(--text-dim);font-size:13px;font-weight:600;padding:14px 14px;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:color .2s,border-color .2s}
+.nav-btn:hover{color:var(--text)}.nav-btn.active{color:var(--text);border-bottom-color:var(--accent)}
+.page{display:none;padding:20px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));max-width:800px;margin:0 auto}.page.active{display:block}
+.page-title{font-size:22px;font-weight:800;margin-bottom:4px;letter-spacing:-.02em}
+.page-sub{color:var(--text-dim);font-size:14px;margin-bottom:24px}
+.chapter-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.ch-pill{padding:6px 16px;border-radius:99px;border:1.5px solid var(--border);background:none;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.ch-pill:hover{border-color:var(--text-dim);color:var(--text)}
+.ch-pill.active-ch8{background:#5b8dee22;border-color:var(--ch8);color:var(--ch8)}
+.ch-pill.active-ch9{background:#a78bfa22;border-color:var(--ch9);color:var(--ch9)}
+.ch-pill.active-ch10{background:#34d39922;border-color:var(--ch10);color:var(--ch10)}
+.ch-pill.active-all{background:#5b8dee22;border-color:var(--accent);color:var(--accent)}
+.fc-stats{display:flex;gap:16px;align-items:center;margin-bottom:20px;font-size:13px;color:var(--text-dim)}
+.fc-prog{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.fc-prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.card-wrap{perspective:1200px;height:280px;margin-bottom:20px;cursor:pointer}
+.card-inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.card-wrap.flipped .card-inner{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:28px 24px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.card-back{transform:rotateY(180deg);background:var(--surface2);overflow-y:auto;align-items:flex-start;text-align:left;justify-content:flex-start;padding-top:20px}
+.card-chapter-tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;padding:3px 10px;border-radius:99px}
+.tag-ch8{background:#5b8dee22;color:var(--ch8)}.tag-ch9{background:#a78bfa22;color:var(--ch9)}.tag-ch10{background:#34d39922;color:var(--ch10)}
+.card-question{font-size:17px;font-weight:600;line-height:1.5;color:var(--text)}
+.card-tap{position:absolute;bottom:14px;right:16px;font-size:11px;color:var(--text-faint)}
+.card-answer-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent3);margin-bottom:10px}
+.card-answer{font-size:15px;line-height:1.65;color:var(--text)}
+.card-controls{display:flex;gap:10px;justify-content:center;align-items:center}
+.ctrl-btn{padding:10px 22px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.ctrl-btn:hover{background:var(--surface2);border-color:var(--text-dim)}
+.ctrl-btn.success{border-color:var(--accent3);color:var(--accent3)}.ctrl-btn.success:hover{background:#34d39922}
+.ctrl-btn.danger{border-color:var(--danger);color:var(--danger)}.ctrl-btn.danger:hover{background:#f8717122}
+.card-counter{font-size:13px;color:var(--text-dim);min-width:70px;text-align:center}
+.topic-grid{display:grid;gap:12px}
+.topic-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.topic-header{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;user-select:none;transition:background .15s}
+.topic-header:hover{background:var(--surface2)}
+.topic-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.icon-ch8{background:#5b8dee22}.icon-ch9{background:#a78bfa22}.icon-ch10{background:#34d39922}
+.topic-title-wrap{flex:1}.topic-title{font-size:15px;font-weight:700}.topic-sub{font-size:12px;color:var(--text-dim);margin-top:1px}
+.topic-chevron{color:var(--text-faint);font-size:13px;transition:transform .25s}
+.topic-card.open .topic-chevron{transform:rotate(90deg)}
+.topic-body{display:none;padding:0 18px 20px;border-top:1px solid var(--border)}
+.topic-card.open .topic-body{display:block}
+.topic-body p{font-size:14px;line-height:1.75;color:var(--text);margin-top:14px}
+.topic-body h4{font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-top:18px;margin-bottom:6px}
+.topic-body ul,.topic-body ol{padding-left:20px;margin-top:6px}
+.topic-body li{font-size:14px;line-height:1.75;color:var(--text);margin-bottom:4px}
+.fbox{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;margin:10px 0;font-family:'Courier New',monospace;font-size:13px;color:var(--accent2);white-space:pre-line}
+.callout{background:#5b8dee0f;border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin:12px 0;font-size:14px;line-height:1.6}
+.callout.warn{background:#fbbf240f;border-left-color:var(--warn)}.callout.ok{background:#34d3990f;border-left-color:var(--accent3)}
+.dtable{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.dtable th{background:var(--bg);padding:8px 10px;text-align:left;color:var(--text-dim);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.dtable td{padding:8px 10px;border-top:1px solid var(--border);color:var(--text);line-height:1.5}
+.dtable tr:hover td{background:var(--surface2)}
+.exam-toc{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:28px}
+.toc-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;text-align:left;transition:all .15s;color:var(--text)}
+.toc-btn:hover{border-color:var(--accent);background:var(--surface2)}
+.toc-num{font-size:11px;color:var(--text-faint);font-weight:600;margin-bottom:3px}.toc-label{font-size:13px;font-weight:600}
+.exam-sl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin:28px 0 12px}
+.score-bar{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+.score-lbl{font-size:13px;color:var(--text-dim)}.score-num{font-size:22px;font-weight:800;color:var(--accent3)}
+.score-prog{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.score-fill{height:100%;background:var(--accent3);border-radius:3px;transition:width .4s}
+.reset-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;transition:all .15s}
+.reset-btn:hover{border-color:var(--danger);color:var(--danger)}
+.mc-block{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;transition:border-color .2s}
+.mc-block.ans-c{border-color:#34d39966}.mc-block.ans-w{border-color:#f8717166}.mc-block.ans-correct{border-color:#34d39966}.mc-block.ans-wrong{border-color:#f8717166}
+.mc-qh{padding:16px 18px 12px;display:flex;align-items:flex-start;gap:12px}
+.mc-num{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px;transition:background .3s,color .3s}
+.mc-num.sc{background:#34d39933;color:var(--accent3)}.mc-num.sw{background:#f8717133;color:var(--danger)}
+.mc-qt{font-size:14px;line-height:1.6;color:var(--text);flex:1}
+.mc-opts{padding:0 18px 14px;display:grid;gap:8px}
+.mc-ch{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--bg);cursor:pointer;transition:all .15s;font-size:14px;line-height:1.5;color:var(--text);text-align:left;width:100%}
+.mc-ch:hover:not([disabled]){border-color:var(--accent);background:#5b8dee0f}
+.mc-ch[disabled]{cursor:default}.mc-ch.fr-locked{cursor:default}
+.opt-l{width:22px;height:22px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;transition:all .2s}
+.mc-ch.cc{border-color:var(--accent3);background:#34d3990f;color:var(--accent3)}.mc-ch.cc .opt-l{background:var(--accent3);color:#0f1117}
+.mc-ch.cw{border-color:var(--danger);background:#f871710f;color:var(--danger)}.mc-ch.cw .opt-l{background:var(--danger);color:#0f1117}
+.mc-ch.rc{border-color:#34d39966;background:#34d3990a;color:var(--accent3)}.mc-ch.rc .opt-l{background:#34d39933;color:var(--accent3)}
+.mc-ch.mu{opacity:.35}
+.mc-rr{display:flex;align-items:center;gap:8px;margin:0 18px 14px}
+.mc-ex{display:none;margin:0 18px 16px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.mc-ex.vis{display:block}
+.mc-ex h4{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.mc-ex ul{padding-left:18px;margin-top:6px}
+.mc-ex li{font-size:13px;line-height:1.7;color:var(--text)}
+.slist{counter-reset:s;list-style:none;padding:0;margin-top:8px}
+.slist li{counter-increment:s;display:flex;gap:10px;margin-bottom:8px;font-size:13px;line-height:1.6}
+.slist li::before{content:counter(s);background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;min-width:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px}
+.rbadge{padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700}
+.rbadge.rc2{background:#34d39922;color:var(--accent3)}.rbadge.rw2{background:#f8717122;color:var(--danger)}.rbadge.rc{background:#34d39922;color:var(--accent3)}.rbadge.rw{background:#f8717122;color:var(--danger)}
+.tex-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-size:12px;font-weight:600;padding:4px 10px;cursor:pointer;margin-left:auto;transition:all .15s}
+.tex-btn:hover{border-color:var(--accent);color:var(--accent)}
+.fr-block{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+.fr-hdr{padding:16px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s}
+.fr-hdr:hover{background:var(--surface2)}
+.fr-num{width:28px;height:28px;border-radius:50%;background:#a78bfa22;color:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.fr-tw{flex:1}.fr-ttl{font-size:15px;font-weight:700}.fr-pts{font-size:12px;color:var(--text-dim);margin-top:2px}
+.fr-chv{color:var(--text-faint);font-size:13px;transition:transform .25s}
+.fr-block.open .fr-chv{transform:rotate(90deg)}
+.fr-body{display:none;border-top:1px solid var(--border)}.fr-block.open .fr-body{display:block}
+.fr-pb{border-bottom:1px solid #2e335288;padding:16px 18px}.fr-pb:last-child{border-bottom:none}
+.fr-pl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);margin-bottom:8px}
+.fr-qt{font-size:14px;line-height:1.65;color:var(--text);margin-bottom:14px}
+.fr-vg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(max-width:600px){.fr-vg{grid-template-columns:1fr}}
+.fr-vo{border:2px solid var(--border);border-radius:var(--radius-sm);padding:12px;cursor:pointer;transition:all .15s;background:var(--bg);display:flex;flex-direction:column;gap:5px}
+.fr-vo:hover:not(.lk){border-color:var(--accent);background:#5b8dee08}
+.fr-vo.sc2{border-color:var(--accent3);background:#34d3990d}
+.fr-vo.sw2{border-color:var(--danger);background:#f871710d}
+.fr-vo.rv{border-color:#34d39966;background:#34d39907}
+.fr-vo.mu2{opacity:.35}.fr-vo.lk{cursor:default}.fr-vo.sel-c{border-color:var(--accent3);background:#34d3990d}.fr-vo.sel-w{border-color:var(--danger);background:#f871710d}.fr-vo.rev-c{border-color:#34d39966;background:#34d39907}.fr-vo.muted-o{opacity:.35}.fr-vo.fr-locked{cursor:default}
+.fvl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint)}
+.fvm{font-size:13px;font-weight:600;color:var(--text)}
+.fvp{font-size:12px;color:var(--text-dim);font-family:'Courier New',monospace;margin-top:3px;line-height:1.45}
+.fr-rr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.fr-sol{display:none;margin-top:8px}.fr-sol.on{display:block}.fr-sol.shown{display:block}
+.sol-ttl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent3);margin-bottom:10px}
+.sol-stp{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
+.sol-n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.sol-c{flex:1}.sol-lbl{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.sol-txt{font-size:13px;line-height:1.65;color:var(--text)}
+.sol-m{font-family:'Courier New',monospace;background:var(--surface2);padding:6px 10px;border-radius:6px;margin:6px 0;font-size:13px;color:var(--accent2);display:block;white-space:pre-line}
+.sol-ans{background:#34d39911;border:1.5px solid #34d39944;border-radius:var(--radius-sm);padding:10px 14px;margin-top:10px;font-size:14px;font-weight:700;color:var(--accent3)}
+.sol-w{background:#fbbf240f;border-left:3px solid var(--warn);border-radius:0 6px 6px 0;padding:8px 12px;margin:8px 0;font-size:13px;line-height:1.6;color:var(--text-dim)}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}button,a{-webkit-tap-highlight-color:transparent}.ctrl-btn,.ch-pill,.toc-btn,.mc-ch,.fr-vo,.reset-btn,.tex-btn,.nav-btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+@media(max-width:500px){.exam-toc{grid-template-columns:1fr}.card-wrap{height:240px}.page-title{font-size:19px}}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <h1>&#9879;&#65039; CHEM 305</h1>
+  <button class="nav-btn active" onclick="showPage('flashcards')">Flashcards</button>
+  <button class="nav-btn" onclick="showPage('topics')">Topics</button>
+  <button class="nav-btn" onclick="showPage('exam')">Practice Exam</button>
+</nav>
+<div class="page active" id="page-flashcards">
+  <div class="page-title">Flashcards</div>
+  <div class="page-sub">Tap a card to reveal the answer. Mark each to track progress.</div>
+  <div class="chapter-filter">
+    <button class="ch-pill active-all" onclick="setChapter('all',this)">All Chapters</button>
+    <button class="ch-pill" onclick="setChapter('ch8',this)">Ch 8: Solutions</button>
+    <button class="ch-pill" onclick="setChapter('ch9',this)">Ch 9: Reactions</button>
+    <button class="ch-pill" onclick="setChapter('ch10',this)">Ch 10: Acids/Bases</button>
+  </div>
+  <div class="fc-stats">
+    <span id="fc-label">Card 1 of 35</span>
+    <div class="fc-prog"><div class="fc-prog-fill" id="fc-bar" style="width:0%"></div></div>
+    <span id="fc-known-count" style="color:var(--accent3)">&#10003; 0</span>
+  </div>
+  <div class="card-wrap" id="cardWrap" onclick="flipCard()">
+    <div class="card-inner">
+      <div class="card-face"><div class="card-chapter-tag" id="cardTag">CH 8</div><div class="card-question" id="cardQ">Loading...</div><div class="card-tap">Tap to reveal</div></div>
+      <div class="card-face card-back"><div class="card-answer-label">Answer</div><div class="card-answer" id="cardA">-</div></div>
+    </div>
+  </div>
+  <div class="card-controls">
+    <button class="ctrl-btn" onclick="prevCard()">&#8592; Prev</button>
+    <span class="card-counter" id="cardCounter">1 / 35</span>
+    <button class="ctrl-btn" onclick="nextCard()">Next &#8594;</button>
+  </div>
+  <div class="card-controls" style="margin-top:10px">
+    <button class="ctrl-btn danger" onclick="markCard(false)">&#10007; Still Learning</button>
+    <button class="ctrl-btn success" onclick="markCard(true)">&#10003; Got It</button>
+    <button class="ctrl-btn" onclick="shuffleCards()">&#8644; Shuffle</button>
+  </div>
+</div>
+<div class="page" id="page-topics">
+  <div class="page-title">Topic Explanations</div>
+  <div class="page-sub">In-depth breakdowns of every testable concept. Tap to expand.</div>
+  <div class="topic-grid" id="topicGrid"></div>
+</div>
+<div class="page" id="page-exam">
+  <div class="page-title">Practice Exam</div>
+  <div class="page-sub">Choose your answer — results and full solutions unlock after you pick.</div>
+  <div class="score-bar">
+    <div><div class="score-lbl">MC Score</div><div class="score-num" id="scoreDisplay">0 / 30</div></div>
+    <div class="score-prog"><div class="score-fill" id="scoreBar" style="width:0%"></div></div>
+    <button class="reset-btn" onclick="resetExam()">Reset Exam</button>
+  </div>
+  <div class="exam-toc">
+    <div class="toc-btn" onclick="scrollTo2('mc-sec')"><div class="toc-num">Part I</div><div class="toc-label">Multiple Choice (30 Q)</div></div>
+    <div class="toc-btn" onclick="scrollTo2('fr-sec')"><div class="toc-num">Part II</div><div class="toc-label">Free Response (10 Q)</div></div>
+  </div>
+  <div class="exam-sl" id="mc-sec">Part I - Multiple Choice</div>
+  <div id="mcContainer"></div>
+  <div class="exam-sl" id="fr-sec" style="margin-top:32px">Part II - Free Response</div>
+  <div id="frContainer"></div>
+</div>
+<script>
+const CARDS=[
+{ch:'ch8',q:'Solute vs. solvent — what is the difference?',a:'The solvent is present in the LARGEST amount (e.g., water in saltwater). The solute is dissolved in it. A solution has one solvent but can have multiple solutes.'},
+{ch:'ch8',q:'How does temperature affect solubility of solids vs. gases?',a:'Solids: MORE soluble as temperature rises. Gases: LESS soluble as temperature rises (warm soda goes flat). Opposite directions — classic exam trap.'},
+{ch:'ch8',q:'How does pressure affect solubility?',a:'Almost no effect on solids/liquids. Higher pressure forces more GAS into solution. Lower pressure lets gas escape (soda fizzes when opened). Henry\'s Law.'},
+{ch:'ch8',q:'What does "like dissolves like" mean?',a:'Polar solvents dissolve polar/ionic solutes. Nonpolar dissolves nonpolar. Water (polar) dissolves NaCl and glucose but NOT fats or oils (nonpolar).'},
+{ch:'ch8',q:'What is a colligative property?',a:'A property that depends ONLY on the NUMBER of dissolved particles, not their identity. More particles = greater effect. Examples: boiling-point elevation, freezing-point depression, osmotic pressure.'},
+{ch:'ch8',q:'Particle count: glucose, NaCl, CaCl2, K3PO4?',a:'Glucose: i=1 (no dissociation). NaCl: i=2 (Na+ + Cl-). CaCl2: i=3 (Ca2+ + 2Cl-). K3PO4: i=4 (3K+ + PO43-). Higher i = greater colligative effect.'},
+{ch:'ch8',q:'What is osmosis? Which direction does water move?',a:'Net movement of water through a semipermeable membrane from LOW solute concentration to HIGH solute concentration. Water always moves TOWARD the more concentrated side.'},
+{ch:'ch8',q:'Hypotonic, hypertonic, isotonic — define each and RBC effect.',a:'Hypotonic (lower outside): water in, cell swells/bursts (hemolysis). Hypertonic (higher outside): water out, cell shrinks (crenation). Isotonic: no net flow, no change.'},
+{ch:'ch8',q:'Molarity formula and required units?',a:'M = moles of solute / liters of solution. Volume MUST be in LITERS. Convert mL to L by dividing by 1000. This is the #1 calculation error on exams.'},
+{ch:'ch8',q:'Dilution equation — what is conserved?',a:'C1V1 = C2V2. Moles of solute are CONSERVED. Only volume and concentration change. You can use any matching volume units (both mL or both L).'},
+{ch:'ch8',q:'Osmolarity formula and what is i?',a:'Osmolarity = Molarity x i. i = particles per formula unit after dissociation. NaCl: i=2. CaCl2: i=3. Glucose: i=1. Units: Osm/L.'},
+{ch:'ch8',q:'Is K3PO4 soluble? Why?',a:'SOLUBLE. Phosphate is normally insoluble, BUT Group IA ions (K+) are an exception. Group IA (Li+,Na+,K+...) salts are ALWAYS soluble with no exceptions.'},
+{ch:'ch8',q:'Three saturation terms?',a:'Unsaturated: less than maximum, can dissolve more. Saturated: at the maximum. Supersaturated: MORE than maximum, unstable — crystallizes rapidly with any disturbance.'},
+{ch:'ch9',q:'Five reaction types — patterns?',a:'Combination: X+Y->XY. Decomposition: XY->X+Y. Displacement: X+YZ->Y+XZ. Exchange: AX+BY->AY+BX. Combustion: Fuel+O2->CO2+H2O+energy.'},
+{ch:'ch9',q:'Oxidation vs. reduction — LEO/OIL RIG?',a:'LEO says GER: Loss of Electrons = Oxidation; Gain of Electrons = Reduction. OIL RIG: Oxidation Is Loss, Reduction Is Gain. They ALWAYS occur together.'},
+{ch:'ch9',q:'Oxidizing agent vs. reducing agent?',a:'Oxidizing Agent: gets REDUCED itself (gains e-), causes oxidation in other. Reducing Agent: gets OXIDIZED itself (loses e-), causes reduction in other.'},
+{ch:'ch9',q:'Key oxidation number rules for O and H?',a:'O: usually -2 (except -1 in peroxides). H: usually +1 (except -1 in metal hydrides). In compounds all ox. numbers sum to 0; in polyatomic ions sum to ion charge.'},
+{ch:'ch9',q:'Activation energy — what does a catalyst do?',a:'Ea = minimum energy required for a productive collision. A catalyst lowers Ea via an alternative pathway. Does NOT change K or equilibrium position. Is not consumed.'},
+{ch:'ch9',q:'Four factors that increase reaction rate?',a:'1. Greater surface area. 2. Higher concentration. 3. Higher temperature (more energy AND more collisions). 4. Catalyst (lowers Ea). All increase the frequency or energy of productive collisions.'},
+{ch:'ch9',q:'DeltaH, DeltaS, DeltaG signs and meanings?',a:'DeltaH<0: exothermic. DeltaH>0: endothermic. DeltaS>0: more disorder. DeltaG<0: spontaneous. DeltaG=0: equilibrium. DeltaG=DeltaH-T(DeltaS) [T in Kelvin!].'},
+{ch:'ch9',q:'What is equilibrium? Does it mean equal concentrations?',a:'Forward rate = reverse rate. Concentrations are CONSTANT but NOT necessarily equal. Both reactants and products coexist. K depends only on temperature.'},
+{ch:'ch9',q:'Le Chatelier\'s principle — all stresses?',a:'Add reactant -> shift right. Add product -> shift left. Remove product -> shift right. Increase T -> toward endothermic side. Increase pressure -> fewer gas moles. Add catalyst -> NO shift.'},
+{ch:'ch9',q:'How to write Keq expression?',a:'Keq = [products]^coeff / [reactants]^coeff. Products ALWAYS in numerator. Exponents = stoichiometric coefficients. Exclude pure solids and pure liquids.'},
+{ch:'ch10',q:'Arrhenius AND Bronsted-Lowry definitions of acid and base?',a:'Arrhenius: acid produces H+; base produces OH-. Bronsted-Lowry: acid = H+ DONOR; base = H+ ACCEPTOR. BL is more general — explains why NH3 is a base (accepts H+ from water).'},
+{ch:'ch10',q:'Conjugate acid-base pair — how to find each?',a:'A pair differs by exactly ONE H+. Conjugate base: remove one H+ from acid (charge -1). Conjugate acid: add one H+ to base (charge +1). Never change by more than one proton.'},
+{ch:'ch10',q:'7 strong acids and strong bases?',a:'Strong acids: HCl, HBr, HI, HNO3, HClO3, HClO4, H2SO4. Strong bases: Group IA hydroxides (NaOH, KOH) and heavier Group IIA hydroxides (Ca(OH)2, Sr(OH)2, Ba(OH)2). Everything else = weak.'},
+{ch:'ch10',q:'pH scale, Kw, and the tenfold rule?',a:'pH = -log[H3O+]. pH<7: acidic. pH=7: neutral. pH>7: basic. Every 1 pH unit = 10x change in [H3O+]. Kw = [H3O+][OH-] = 1.0x10-14 at 25C.'},
+{ch:'ch10',q:'What is a buffer? Two required components?',a:'Resists pH change when small amounts of acid or base are added. Must contain: weak acid + its conjugate base, OR weak base + its conjugate acid. Works within +/-1 pH unit of pKa.'},
+{ch:'ch10',q:'Henderson-Hasselbalch equation?',a:'pH = pKa + log([A-]/[HA]). A- = conjugate base (goes on TOP). HA = weak acid. Use for buffer pH calculations. When [A-]=[HA], pH = pKa.'},
+{ch:'ch10',q:'Predict if a salt solution is acidic, basic, or neutral?',a:'Strong acid + Strong base -> Neutral (NaCl). Weak acid + Strong base -> Basic (CH3COONa). Strong acid + Weak base -> Acidic (NH4Cl). Weak + Weak -> depends on Ka vs Kb.'},
+{ch:'ch10',q:'Equivalents — formula and charge relationship?',a:'Eq = moles x |charge|. Charge +/-1: 1 mol = 1 Eq. Charge +/-2: 1 mol = 2 Eq. Charge +/-3: 1 mol = 3 Eq. Reverse: mol = Eq / charge.'},
+{ch:'ch10',q:'Three electrolyte categories with examples?',a:'Strong: ionizes ~100% (NaCl, HCl, NaOH). Weak: ionizes partially (CH3COOH, NH3). Nonelectrolyte: no ions (glucose, sucrose). Strength is about ionization degree, not concentration.'},
+{ch:'ch10',q:'Ka and pKa — which direction means stronger acid?',a:'Ka = [H3O+][A-]/[HA]. LARGER Ka = stronger acid. pKa = -log(Ka). LOWER pKa = stronger acid. Ka and pKa run in OPPOSITE directions (like [H+] and pH).'},
+{ch:'ch10',q:'Conjugate acid of SO3(2-)?',a:'Add one H+ to SO3(2-): HSO3(-) (bisulfite). Charge goes from 2- to 1- (increases by 1 when adding H+). Always change by exactly ONE proton.'}
+];
+
+let allCards=[...CARDS],filtered=[...allCards],currentIdx=0,known=new Set(),currentChapter='all';
+function setChapter(ch,btn){currentChapter=ch;document.querySelectorAll('.ch-pill').forEach(b=>b.className='ch-pill');btn.classList.add('active-'+ch);filtered=ch==='all'?[...allCards]:allCards.filter(c=>c.ch===ch);currentIdx=0;renderCard();}
+function renderCard(){if(!filtered.length)return;const card=filtered[currentIdx];document.getElementById('cardQ').textContent=card.q;document.getElementById('cardA').textContent=card.a;const t=document.getElementById('cardTag');t.className='card-chapter-tag tag-'+card.ch;const L={ch8:'Ch 8 Solutions',ch9:'Ch 9 Reactions',ch10:'Ch 10 Acids & Bases'};t.textContent=L[card.ch];document.getElementById('cardWrap').classList.remove('flipped');const total=filtered.length,ki=filtered.filter((_,i)=>known.has(allCards.indexOf(filtered[i]))).length;document.getElementById('fc-label').textContent='Card '+(currentIdx+1)+' of '+total;document.getElementById('cardCounter').textContent=(currentIdx+1)+' / '+total;document.getElementById('fc-bar').style.width=((currentIdx+1)/total*100)+'%';document.getElementById('fc-known-count').textContent='\u2713 '+ki;}
+function flipCard(){document.getElementById('cardWrap').classList.toggle('flipped');}
+function nextCard(){document.getElementById('cardWrap').classList.remove('flipped');setTimeout(()=>{currentIdx=(currentIdx+1)%filtered.length;renderCard();},120);}
+function prevCard(){document.getElementById('cardWrap').classList.remove('flipped');setTimeout(()=>{currentIdx=(currentIdx-1+filtered.length)%filtered.length;renderCard();},120);}
+function markCard(g){const idx=allCards.indexOf(filtered[currentIdx]);if(g)known.add(idx);else known.delete(idx);nextCard();}
+function shuffleCards(){for(let i=filtered.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[filtered[i],filtered[j]]=[filtered[j],filtered[i]];}currentIdx=0;renderCard();}
+renderCard();
+
+const TOPICS=[
+{ch:'ch8',icon:'&#128167;',title:'Solutions & Solubility',sub:'Like dissolves like, temperature & pressure',body:'<h4>What is a solution?</h4><p>A solution is a homogeneous mixture. The <strong>solvent</strong> is in the largest amount; the <strong>solute</strong> is dissolved in it.</p><h4>Temperature & Pressure Effects</h4><div class="callout warn">&#9888;&#65039; Solids get MORE soluble with heat. Gases get LESS soluble with heat. Opposite directions!</div><ul><li>Solids: solubility increases with temperature.</li><li>Gases: solubility decreases with temperature; increases with pressure (Henry\'s Law).</li><li>Pressure: no significant effect on solids/liquids.</li></ul><h4>Saturation Terms</h4><table class="dtable"><tr><th>Term</th><th>Meaning</th></tr><tr><td>Unsaturated</td><td>Holds less than maximum</td></tr><tr><td>Saturated</td><td>Holds exactly the maximum</td></tr><tr><td>Supersaturated</td><td>Holds MORE than maximum — unstable</td></tr></table>'},
+{ch:'ch8',icon:'&#129514;',title:'Concentration Calculations',sub:'%(m/m), %(v/v), %(m/v), Molarity, Dilution',body:'<h4>Formulas</h4><div class="fbox">%(m/v) = (g solute / mL solution) x 100\nMolarity (M) = moles solute / liters solution\nDilution: C1V1 = C2V2\nmass solution = mass solute + mass solvent</div><div class="callout warn">&#9888;&#65039; Volume MUST be in LITERS for molarity. Mass of SOLUTION includes both solute and solvent.</div><h4>Molarity Example</h4><p>20.0 g NaOH (MW=40.0) in 1.50 L: moles = 20.0/40.0 = 0.500 mol. M = 0.500/1.50 = 0.333 M</p><h4>Dilution Example</h4><p>Make 1.0%(m/v) from 3.0%(m/v), 24 mL stock: V2 = (3.0x24)/1.0 = 72 mL. Add 72-24 = 48 mL water.</p>'},
+{ch:'ch8',icon:'&#9878;&#65039;',title:'Colligative Properties & Osmolarity',sub:'Particle count, osmosis, tonicity',body:'<h4>Particle Counting (i values)</h4><table class="dtable"><tr><th>Solute</th><th>i</th><th>0.1 M osmolarity</th></tr><tr><td>Glucose</td><td>1</td><td>0.1 Osm/L</td></tr><tr><td>NaCl</td><td>2</td><td>0.2 Osm/L</td></tr><tr><td>CaCl2</td><td>3</td><td>0.3 Osm/L</td></tr><tr><td>K3PO4</td><td>4</td><td>0.4 Osm/L</td></tr></table><div class="fbox">Osmolarity = Molarity x i</div><h4>Tonicity & Cell Effects</h4><table class="dtable"><tr><th>Type</th><th>Outside vs Inside</th><th>Water</th><th>Cell</th></tr><tr><td>Hypotonic</td><td>Lower outside</td><td>Into cell</td><td>Swells/hemolysis</td></tr><tr><td>Hypertonic</td><td>Higher outside</td><td>Out of cell</td><td>Shrinks/crenation</td></tr><tr><td>Isotonic</td><td>Equal</td><td>No net flow</td><td>Normal</td></tr></table><div class="callout warn">&#9888;&#65039; Osmosis moves WATER, not solute. Water moves TOWARD higher solute concentration.</div>'},
+{ch:'ch9',icon:'&#9879;&#65039;',title:'Reaction Types & Redox',sub:'5 types, oxidation numbers, redox identification',body:'<h4>Five Reaction Types</h4><table class="dtable"><tr><th>Type</th><th>Pattern</th><th>Example</th></tr><tr><td>Combination</td><td>X+Y->XY</td><td>4Na+O2->2Na2O</td></tr><tr><td>Decomposition</td><td>XY->X+Y</td><td>2HgO->2Hg+O2</td></tr><tr><td>Displacement</td><td>X+YZ->Y+XZ</td><td>Zn+CuSO4->Cu+ZnSO4</td></tr><tr><td>Exchange</td><td>AX+BY->AY+BX</td><td>AgNO3+NaCl->AgCl+NaNO3</td></tr><tr><td>Combustion</td><td>Fuel+O2->CO2+H2O</td><td>CH4+2O2->CO2+2H2O</td></tr></table><div class="callout ok">&#10003; Pure element on either side = likely redox. Combustion = ALWAYS redox. Exchange = usually nonredox.</div><h4>OA vs RA</h4><table class="dtable"><tr><th>Term</th><th>What it does</th><th>What happens to it</th></tr><tr><td>Oxidizing Agent</td><td>Causes oxidation in other</td><td>Gets REDUCED</td></tr><tr><td>Reducing Agent</td><td>Causes reduction in other</td><td>Gets OXIDIZED</td></tr></table>'},
+{ch:'ch9',icon:'&#128200;',title:'Rates, Thermodynamics & Equilibrium',sub:'Rate factors, DeltaH/G/S, K, Le Chatelier',body:'<h4>Rate Factors</h4><ol><li>Surface area: more contact = more collisions</li><li>Concentration: more particles = more collisions</li><li>Temperature: more energy + more frequent collisions</li><li>Catalyst: lowers Ea (does NOT change K)</li></ol><h4>Thermodynamics Signs</h4><table class="dtable"><tr><th>Symbol</th><th>Sign</th><th>Meaning</th></tr><tr><td>DeltaH</td><td>-</td><td>Exothermic</td></tr><tr><td>DeltaH</td><td>+</td><td>Endothermic</td></tr><tr><td>DeltaG</td><td>-</td><td>Spontaneous</td></tr><tr><td>DeltaG</td><td>0</td><td>At equilibrium</td></tr></table><div class="fbox">DeltaG = DeltaH - (T x DeltaS)  [T in Kelvin!]</div><h4>Le Chatelier Shifts</h4><table class="dtable"><tr><th>Stress</th><th>Shift</th></tr><tr><td>Add reactant</td><td>Right (products)</td></tr><tr><td>Add product</td><td>Left (reactants)</td></tr><tr><td>Remove product</td><td>Right (products)</td></tr><tr><td>Increase T</td><td>Toward endothermic side</td></tr><tr><td>Increase pressure</td><td>Toward fewer gas moles</td></tr><tr><td>Add catalyst</td><td>NO SHIFT</td></tr></table>'},
+{ch:'ch10',icon:'&#128300;',title:'Acid-Base Theories & Conjugate Pairs',sub:'Arrhenius, Bronsted-Lowry, amphiprotic',body:'<h4>Arrhenius</h4><ul><li>Acid: produces H+ in water</li><li>Base: produces OH- in water</li><li>Limitation: cannot explain why NH3 is a base</li></ul><h4>Bronsted-Lowry</h4><ul><li>Acid: proton (H+) DONOR</li><li>Base: proton (H+) ACCEPTOR</li><li>NH3 + H2O -> NH4+ + OH- (NH3 accepts H+ = base)</li></ul><div class="callout">&#128161; Conjugate pairs differ by EXACTLY ONE H+. Never change more than one proton at a time!</div><h4>Example: HSO4- + H2O -> SO42- + H3O+</h4><p>Pair 1: HSO4- (acid) / SO42- (conjugate base). Pair 2: H2O (base) / H3O+ (conjugate acid).</p><h4>Mono/Di/Triprotic</h4><table class="dtable"><tr><th>Type</th><th>H+ donated</th><th>Examples</th></tr><tr><td>Monoprotic</td><td>1</td><td>HCl, HNO3</td></tr><tr><td>Diprotic</td><td>2</td><td>H2SO4, H2SO3</td></tr><tr><td>Triprotic</td><td>3</td><td>H3PO4</td></tr></table>'},
+{ch:'ch10',icon:'&#9879;&#65039;',title:'pH, Ka, Strong vs. Weak Acids',sub:'pH scale, Kw, acid strength',body:'<div class="fbox">pH = -log[H3O+]\n[H3O+] x [OH-] = 1.0x10-14 (Kw)\npKa = -log(Ka)</div><ul><li>pH &lt; 7: acidic | pH = 7: neutral | pH &gt; 7: basic</li><li>Every 1 pH unit = 10x change in [H3O+]</li></ul><div class="callout warn">&#9888;&#65039; Larger Ka = stronger acid. Lower pKa = stronger acid. Ka and pKa run in OPPOSITE directions!</div><h4>Strong vs. Weak</h4><table class="dtable"><tr><th>Category</th><th>Ionization</th></tr><tr><td>Strong acid</td><td>~100% complete</td></tr><tr><td>Weak acid</td><td>&lt;5% (partial)</td></tr></table><p><strong>7 strong acids:</strong> HCl, HBr, HI, HNO3, HClO3, HClO4, H2SO4. Everything else is weak.</p>'},
+{ch:'ch10',icon:'&#128302;',title:'Buffers, Salts & Electrolytes',sub:'Henderson-Hasselbalch, salt hydrolysis, equivalents',body:'<h4>Buffer Requirements</h4><p>Resists pH change. Must contain: weak acid + conjugate base OR weak base + conjugate acid.</p><div class="callout warn">&#9888;&#65039; HCl + KCl is NOT a buffer. HCl is strong — no equilibrium to buffer with.</div><div class="fbox">pH = pKa + log([A-] / [HA])\nA- = conjugate base (TOP), HA = weak acid</div><div class="callout">&#128161; Buffer is most effective within +/-1 pH unit of pKa.</div><h4>Salt Hydrolysis</h4><table class="dtable"><tr><th>Salt from</th><th>pH</th><th>Example</th></tr><tr><td>Strong acid + Strong base</td><td>Neutral</td><td>NaCl</td></tr><tr><td>Weak acid + Strong base</td><td>Basic</td><td>CH3COONa</td></tr><tr><td>Strong acid + Weak base</td><td>Acidic</td><td>NH4Cl</td></tr></table><h4>Equivalents</h4><div class="fbox">Eq = moles x |charge|\n+/-1: 1 mol = 1 Eq | +/-2: 1 mol = 2 Eq | +/-3: 1 mol = 3 Eq</div>'}
+];
+function buildTopics(){const g=document.getElementById('topicGrid');TOPICS.forEach((t,i)=>{const d=document.createElement('div');d.className='topic-card';d.innerHTML='<div class="topic-header" onclick="toggleTopic('+i+')" ><div class="topic-icon icon-'+t.ch+'">'+t.icon+'</div><div class="topic-title-wrap"><div class="topic-title">'+t.title+'</div><div class="topic-sub">'+t.sub+'</div></div><span class="topic-chevron">&#9654;</span></div><div class="topic-body">'+t.body+'</div>';g.appendChild(d);});}
+function toggleTopic(i){document.querySelectorAll('.topic-card')[i].classList.toggle('open');}
+buildTopics();
+
+const MC=[
+{n:1,q:'A solution is made by dissolving 5 g of KNO3 in 200 g of water. Which substance is the solvent?',opts:['Water','Both are solvents','Neither is a solvent','KNO3'],ans:0,title:'Solvent = greatest quantity',steps:['The solvent is present in the GREATER amount. Water (200 g) >> KNO3 (5 g). Water is the solvent; KNO3 is the solute.'],warn:'A solution can only have ONE solvent. The component in the largest quantity wins.'},
+{n:2,q:'A solution contains less dissolved solute than it could theoretically hold at that temperature. This solution is:',opts:['concentrated','saturated','supersaturated','unsaturated'],ans:3,title:'Saturation terms',steps:['Unsaturated = less than maximum. More solute CAN be added and will dissolve.','Saturated = at the maximum. Supersaturated = more than maximum (unstable).','Concentrated only means a large amount of solute — it can still be unsaturated.'],warn:'Concentrated does not mean saturated. These describe completely different things.'},{n:3,q:'A can of soda is opened, and gas bubbles rapidly escape. This best illustrates that the solubility of a gas:',opts:['increases as pressure increases','increases as pressure decreases','decreases as pressure increases','is unaffected by pressure'],ans:0,title:"Henry's Law: gas solubility and pressure",steps:['The soda was sealed under HIGH pressure → CO₂ forced into solution (high solubility at high pressure).','Opening drops pressure → CO₂ becomes less soluble → escapes as bubbles.','Principle illustrated: gas solubility INCREASES with pressure. Answer A states this correctly.'],warn:"The question asks what PRINCIPLE is illustrated. The event demonstrates that higher pressure = more dissolved gas."},
+{n:4,q:'Which of the following would you expect to have the lowest solubility in water?',opts:['NaCl','CCl₄','NH₃','CH₃OH'],ans:1,title:'"Like dissolves like"',steps:['Water is polar. NaCl: ionic → dissolves ✓. NH₃: polar, H-bonds with water ✓. CH₃OH: polar –OH group ✓.','CCl₄: the 4 C–Cl bonds are symmetrically arranged → dipoles cancel → NONPOLAR → very low solubility in polar water ✗'],warn:'Even though C–Cl bonds are individually polar, the tetrahedral symmetry of CCl₄ causes them to cancel — making the whole molecule nonpolar.'},
+{n:5,q:'Which of the following compounds is soluble in water?',opts:['K₃PO₄','CaSO₄','PbCl₂','Ag₂CO₃'],ans:0,title:'Solubility Rules',steps:['K₃PO₄: Phosphate is normally insoluble, BUT K⁺ is Group IA → exception → SOLUBLE ✓','CaSO₄: Sulfate usually soluble, but Ca²⁺ is exception → INSOLUBLE ✗','PbCl₂: Chloride usually soluble, but Pb²⁺ is exception → INSOLUBLE ✗','Ag₂CO₃: Carbonate is insoluble; Ag⁺ not a Group IA ion → INSOLUBLE ✗'],warn:'For phosphate, carbonate, sulfide, and hydroxide: always check if the cation is Group IA or NH₄⁺, which make these otherwise insoluble ions soluble.'},
+{n:6,q:'A solution is prepared by dissolving 4.00 g of NaOH in enough water to make 250. mL of solution. What is the molarity?',opts:['1.60 M','16.0 M','0.400 M','0.100 M'],ans:2,title:'Molarity calculation',steps:['MW of NaOH: Na(23.0) + O(16.0) + H(1.0) = 40.0 g/mol','Moles = 4.00 g ÷ 40.0 g/mol = 0.100 mol','Convert volume: 250. mL ÷ 1000 = 0.250 L','M = 0.100 mol ÷ 0.250 L = 0.400 M'],warn:'The most common error: plugging in 250 instead of 0.250. ALWAYS convert mL → L before calculating molarity.'},
+{n:7,q:'A stock solution of 12.0 M HCl is used to prepare 600. mL of a 1.50 M HCl solution. What volume of the 12.0 M stock is required?',opts:['480 mL','150 mL','9.60 mL','75.0 mL'],ans:3,title:'Dilution: C₁V₁ = C₂V₂',steps:['Label: C₁=12.0 M, V₁=?, C₂=1.50 M, V₂=600. mL','Solve: V₁ = (C₂ × V₂) ÷ C₁ = (1.50 × 600.) ÷ 12.0','V₁ = 900 ÷ 12.0 = 75.0 mL','Take 75.0 mL of stock and add water until total volume = 600. mL'],warn:'Both volumes can stay in mL here since units cancel. But if concentrations are in M, volumes must match (both mL or both L).'},
+{n:8,q:'A cell is placed in a 0.20 M NaCl solution. If the cell interior has osmolarity 0.30 Osm/L, the NaCl solution is:',opts:['hypotonic','hypertonic','isotonic','cannot be determined'],ans:1,title:'Osmolarity + Tonicity',steps:['Calculate osmolarity: NaCl → 2 particles (i=2). Osmolarity = 0.20 M × 2 = 0.40 Osm/L','Compare: Outside = 0.40 Osm/L vs. Inside = 0.30 Osm/L','Outside > Inside → solution is HYPERTONIC to the cell','Water moves OUT of cell → cell shrinks (crenation)'],warn:'You MUST calculate osmolarity first — do NOT compare 0.20 M directly to 0.30 Osm/L. They have different units. NaCl gives i=2, so multiply!'},
+{n:9,q:'A chemist adds more solute to an already-saturated solution at constant temperature. The added solute will:',opts:['lower the saturation point','dissolve completely if stirred','remain undissolved at the bottom','convert the solution to unsaturated'],ans:2,title:'Saturated solution behavior',steps:['A saturated solution holds the MAXIMUM amount at that temperature.','Adding more solute at constant temperature: it cannot dissolve → settles at bottom as undissolved solid.','Stirring does NOT help — the solution is already saturated. The solution stays saturated.'],warn:'Supersaturation requires special conditions (careful cooling, no disturbances). Simply adding solute to a saturated solution just gives you undissolved solid.'},
+{n:10,q:'Compare 0.10 M solutions: glucose, NaCl, CaCl₂, K₃PO₄. Which has the lowest freezing point?',opts:['glucose','NaCl','CaCl₂','K₃PO₄'],ans:3,title:'Colligative property: particle counting',steps:['Count effective particles (i × M):','Glucose: i=1 → 0.10 particles','NaCl: i=2 → 0.20 particles','CaCl₂: i=3 → 0.30 particles','K₃PO₄: i=4 → 0.40 particles ← most particles → greatest depression → LOWEST freezing point'],warn:'All have the same molarity (0.10 M), but colligative properties depend on particle COUNT. Count the ions carefully for each.'},
+{n:11,q:'Which type of reaction is 2KClO₃ → 2KCl + 3O₂?',opts:['decomposition','displacement','combustion','combination'],ans:0,title:'Reaction classification',steps:['One reactant (KClO₃) breaks into two products (KCl and O₂). Pattern: XY → X + Y → DECOMPOSITION.','Not combustion: O₂ is PRODUCED here, not consumed. Combustion requires O₂ as a reactant.'],warn:'Combustion requires O₂ as a REACTANT. Whenever you see O₂ as a product, think decomposition (if only one reactant).'},
+{n:12,q:'Which reaction is NOT a redox reaction?',opts:['2H₂ + O₂ → 2H₂O','Zn + 2AgNO₃ → Zn(NO₃)₂ + 2Ag','2Fe + 3Cl₂ → 2FeCl₃','BaCl₂ + Na₂SO₄ → BaSO₄ + 2NaCl'],ans:3,title:'Checking oxidation numbers in D',steps:['Check every element in D: Ba: +2 both sides. Na: +1 both sides. S: +6 both sides. O: −2 both sides. Cl: −1 both sides.','NO oxidation numbers changed → NOT redox. Ions just swap partners (exchange reaction).','A, B, C all involve pure elements appearing or disappearing → all are redox.'],warn:'Exchange reactions typically do NOT involve redox. When ions just switch partners with no electron transfer, oxidation states stay the same.'},
+{n:13,q:'What is the oxidation number of chromium in Cr₂O₇²⁻?',opts:['+3','+6','+7','+2'],ans:1,title:'Oxidation number in polyatomic ion',steps:['Ion charge = 2−. Set up: 2(Cr) + 7(O) = −2','Oxygen is −2 each: 7 × (−2) = −14','Solve: 2(Cr) − 14 = −2 → 2(Cr) = +12 → Cr = +6'],warn:'A common error is getting +7 by ignoring that there are 2 Cr atoms. Divide by 2 at the end! Dichromate (Cr₂O₇²⁻) always has Cr = +6.'},
+{n:14,q:'In 2Al + 3CuSO₄ → Al₂(SO₄)₃ + 3Cu, which substance is the oxidizing agent?',opts:['Cu','Al','CuSO₄','Al₂(SO₄)₃'],ans:2,title:'Identifying the oxidizing agent',steps:['Al: 0 → +3 (loses electrons = OXIDIZED). Al is the reducing agent.','Cu in CuSO₄: +2 → Cu metal: 0 (gains electrons = REDUCED). The substance containing Cu that gets reduced = CuSO₄.','OXIDIZING AGENT = substance that gets reduced = CuSO₄'],warn:'The oxidizing agent is what gets REDUCED. The "agent" is the whole compound (CuSO₄), not just the ion (Cu²⁺) or the product (Cu metal).'},
+{n:15,q:'During a reaction, the temperature of the surrounding water bath rises. This reaction is:',opts:['exothermic; ΔH is negative','endothermic; ΔH is positive','endothermic; ΔH is negative','exothermic; ΔH is positive'],ans:0,title:'Exothermic vs. endothermic',steps:['The water bath (surroundings) WARMS UP → heat is flowing FROM the reaction INTO the surroundings.','The reaction RELEASES heat = EXOTHERMIC.','ΔH is NEGATIVE for exothermic (the system loses heat → negative change for the system).'],warn:"Don't confuse: surroundings warming up means the SYSTEM (reaction) is releasing heat → ΔH negative, NOT positive."},
+{n:16,q:'For a certain reaction, ΔG is calculated to be positive. This reaction is:',opts:['at equilibrium','always exothermic','spontaneous','nonspontaneous'],ans:3,title:'Gibbs free energy signs',steps:['ΔG < 0: spontaneous. ΔG = 0: at equilibrium. ΔG > 0: NONSPONTANEOUS (requires energy input).','Positive ΔG means the reaction will not proceed on its own in the forward direction.','The reverse reaction would be spontaneous (ΔG of reverse = −ΔG of forward).'],warn:'Positive ΔG does NOT mean the reaction is impossible — it means it won\'t happen spontaneously without energy input.'},
+{n:17,q:'Powdered zinc reacts with HCl faster than a solid zinc strip of the same mass. This is primarily because the powder has:',opts:['a lower activation energy','a greater surface area exposed to the acid','a higher concentration of zinc atoms','a lower temperature'],ans:1,title:'Surface area and reaction rate',steps:['Same mass of zinc, but powder form → much greater surface area exposed to HCl.','More surface area = more zinc atoms in contact with acid = more frequent collisions = faster rate.','Activation energy, temperature, and total zinc amount are all unchanged.'],warn:'Surface area affects rate, not activation energy. A catalyst lowers activation energy. Physical grinding only changes surface area.'},
+{n:18,q:'Adding a catalyst to a reaction at equilibrium will:',opts:['increase the value of K','shift the equilibrium toward products','increase the rate of reaching equilibrium, without changing K','decrease only the reverse rate'],ans:2,title:'What a catalyst does',steps:['A catalyst lowers activation energy and speeds up BOTH forward and reverse reactions equally.','The system reaches equilibrium FASTER, but the equilibrium position (K) is unchanged.','K depends only on TEMPERATURE — not on catalysts or concentration changes.'],warn:'A catalyst does NOT shift equilibrium, does NOT change K, and is NOT consumed. It only helps reach equilibrium faster.'},
+{n:19,q:'For the endothermic reaction N₂O₄(g) ⇌ 2NO₂(g), which change shifts equilibrium toward products?',opts:['removing NO₂ as it forms','adding a catalyst','decreasing the temperature','increasing the pressure'],ans:0,title:'Le Châtelier analysis',steps:['A: Remove product NO₂ → system shifts right to replace it → toward products ✓','B: Catalyst → speeds both directions equally → NO shift ✗','C: Decrease T → endothermic forward reaction → decreasing T shifts LEFT (away from products) ✗','D: Increase pressure → fewer gas moles. Left=1 mol, Right=2 mol → shifts LEFT ✗'],warn:'For temperature: increasing T favors the endothermic side; decreasing T favors the exothermic side. This reaction is endothermic going forward, so DECREASING T shifts it backward.'},
+{n:20,q:'A reaction has K = 2.5 × 10⁻⁸. At equilibrium:',opts:['reactants and products are in equal amounts','the forward reaction goes to completion','reactants are strongly favored','products are strongly favored'],ans:2,title:'Interpreting K values',steps:['K = 2.5 × 10⁻⁸ is extremely small (much less than 1).','K << 1 → denominator (reactants) >> numerator (products) → REACTANTS strongly favored.','K >> 1: products favored. K ≈ 1: roughly equal. K << 1: reactants favored.'],warn:'K = 1 does NOT mean equal concentrations of reactants and products. It means the ratio [products]/[reactants] (with exponents) equals 1.'},
+{n:21,q:'Which species can act as either a Brønsted-Lowry acid or base?',opts:['Cl⁻','HCO₃⁻','Na⁺','NH₄⁺'],ans:1,title:'Amphiprotic species',steps:['HCO₃⁻ is amphiprotic: As ACID: HCO₃⁻ → H⁺ + CO₃²⁻ (donates proton). As BASE: HCO₃⁻ + H⁺ → H₂CO₃ (accepts proton).','Cl⁻: conjugate base of strong HCl → can barely donate H⁺. Na⁺: spectator ion. NH₄⁺: only donates H⁺ (acid only).'],warn:'Na⁺ has no acidic protons and does not accept protons — it\'s a spectator ion. Don\'t confuse "came from a base" with "can act as a base."'},
+{n:22,q:'What is the conjugate acid of the sulfite ion, SO₃²⁻?',opts:['SO₄²⁻','H₂SO₃','SO₃','HSO₃⁻'],ans:3,title:'Finding the conjugate acid',steps:['Conjugate acid = ADD one H⁺ to the base.','SO₃²⁻ + H⁺ → HSO₃⁻. Charge goes from 2− to 1− (increases by 1 when adding H⁺).','HSO₃⁻ (bisulfite) is the conjugate acid of SO₃²⁻.'],warn:'Conjugate pairs differ by EXACTLY ONE H⁺. Adding 2 protons would give H₂SO₃ — that\'s skipping a step. Always change by exactly one H⁺.'},
+{n:23,q:'Which of the following is a weak acid?',opts:['H₂SO₄','HClO₄','HNO₂','HCl'],ans:2,title:'Strong vs. weak acid identification',steps:['7 strong acids: HCl, HBr, HI, HNO₃, HClO₃, HClO₄, H₂SO₄. Anything else → WEAK.','H₂SO₄: STRONG. HClO₄: STRONG. HCl: STRONG.','HNO₂: NOT on the strong list → WEAK. (HNO₃ is strong; HNO₂ with one fewer O is not.)'],warn:'HNO₂ vs. HNO₃ is a classic trap. Nitric acid (HNO₃) is strong; nitrous acid (HNO₂) is weak. One oxygen makes a big difference.'},
+{n:24,q:'How many ionizable protons does sulfurous acid, H₂SO₃, have?',opts:['2','3','4','1'],ans:0,title:'Counting ionizable protons',steps:['H₂SO₃ has 2 H atoms that can be donated as protons (the "H₂" prefix tells you directly). It is DIPROTIC.','Step 1: H₂SO₃ ⇌ H⁺ + HSO₃⁻. Step 2: HSO₃⁻ ⇌ H⁺ + SO₃²⁻.','Compare: H₃PO₄ = triprotic (3), H₂SO₄ = diprotic (2), HCl = monoprotic (1).'],warn:'Not all H atoms in a molecule are ionizable. In acetic acid (CH₃COOH), only 1 of the 4 H atoms can be donated. The formula prefix (H₂, H₃, etc.) tells you the ionizable count for inorganic acids.'},
+{n:25,q:'A solution has [OH⁻] = 2.5 × 10⁻¹¹ M. What is the pH?',opts:['10.60','4.00','3.60','3.40'],ans:3,title:'pH from [OH⁻]',steps:['Step 1: Find [H₃O⁺] using Kw: [H₃O⁺] = 1.0×10⁻¹⁴ ÷ 2.5×10⁻¹¹','= (1.0/2.5) × 10⁻¹⁴⁺¹² = 0.40 × 10⁻² = 4.0 × 10⁻⁴ M','Step 2: pH = −log(4.0×10⁻⁴) = −(log 4.0 + log 10⁻⁴) = −(0.602 − 4) = 3.40'],warn:'A very small [OH⁻] means very HIGH [H₃O⁺] means LOW pH (acidic). Don\'t accidentally calculate pOH instead of pH.'},
+{n:26,q:'Predict whether an aqueous solution of sodium acetate (CH₃COONa) is acidic, basic, or neutral.',opts:['acidic','basic','neutral','cannot be determined'],ans:1,title:'Salt hydrolysis',steps:['Identify parents: CH₃COONa comes from acetic acid (CH₃COOH, WEAK acid) + NaOH (STRONG base).','Rule: Weak acid + Strong base → BASIC salt.','CH₃COO⁻ hydrolyzes: CH₃COO⁻ + H₂O ⇌ CH₃COOH + OH⁻ → produces OH⁻ → basic.'],warn:'Na⁺ is a spectator ion — it doesn\'t hydrolyze. The acetate ion (CH₃COO⁻) is what makes the solution basic by accepting a proton from water.'},
+{n:27,q:'Which pair could function as a buffer?',opts:['NH₃ and NH₄Cl','HCl and KCl','NaOH and NaCl','H₂SO₄ and Na₂SO₄'],ans:0,title:'Buffer identification',steps:['Buffer = weak acid + conjugate base (or weak base + conjugate acid).','A: NH₃ (weak base) + NH₄Cl (provides NH₄⁺, the conjugate acid) → VALID BUFFER ✓','B: HCl is STRONG → ionizes completely → no equilibrium to buffer → NOT a buffer ✗','C: NaOH is STRONG base → not a buffer ✗. D: H₂SO₄ is STRONG acid → not a buffer ✗'],warn:'HCl+KCl is a common wrong answer. KCl is just a spectator salt; HCl is strong and can\'t form a buffer. A buffer requires a WEAK acid paired with its conjugate base.'},
+{n:28,q:'How many equivalents are in 2 moles of PO₄³⁻ ions?',opts:['2','3','6','0.67'],ans:2,title:'Equivalents calculation',steps:['PO₄³⁻ has a charge of 3−, so |charge| = 3.','Formula: Eq = moles × |charge| = 2 mol × 3 = 6 Eq'],warn:'The charge of the ion IS the equivalents per mole. 1 mol Ca²⁺ = 2 Eq. 1 mol PO₄³⁻ = 3 Eq. 2 mol PO₄³⁻ = 6 Eq.'},
+{n:29,q:'Acid X has Ka = 1.8×10⁻⁵; Acid Y has Ka = 4.0×10⁻⁴. Which is stronger?',opts:['Y, because it has a larger pKa','X, because it has a smaller Ka','X, because it has a larger pKa','Y, because it has a larger Ka'],ans:3,title:'Ka vs. pKa and acid strength',steps:['Larger Ka = more ionized = STRONGER acid.','Ka(Y) = 4.0×10⁻⁴ > Ka(X) = 1.8×10⁻⁵ → Y is stronger.','pKa = −log(Ka): larger Ka → SMALLER pKa. So Y has the SMALLER pKa. Options A and C say Y has a LARGER pKa — WRONG direction.'],warn:'Ka and pKa run in OPPOSITE directions — just like [H₃O⁺] and pH. Larger Ka = stronger acid = SMALLER pKa. This direction-switch is a very common exam trap.'},
+{n:30,q:'A 0.10 M strong acid and a 0.10 M weak acid are compared. Which is true?',opts:['Both have the same pH since concentrations are equal','The strong acid has a lower pH because it ionizes more completely','The weak acid has a lower pH','The strong acid has a higher pH'],ans:1,title:'Strength vs. concentration',steps:['0.10 M STRONG acid (e.g., HCl): ~100% ionization → [H₃O⁺] ≈ 0.10 M → pH = 1.0','0.10 M WEAK acid (e.g., CH₃COOH): <5% ionization → [H₃O⁺] << 0.10 M → pH >> 1.0 (less acidic)','Lower [H₃O⁺] = higher pH. The weak acid has far fewer H⁺ ions despite same molar concentration.'],warn:'SAME CONCENTRATION ≠ SAME pH when comparing strong vs. weak. Strength (ionization %) determines [H₃O⁺], which determines pH.'}
+];
+
+
+const FR=[
+{n:1,title:'Molarity and Dilution of KOH',pts:7,parts:[
+{label:'Part (a) — 3 pts',q:'Calculate the molarity of 5.61 g KOH dissolved in enough water to make 500. mL of solution.',
+choices:[
+{preview:'mol KOH = 5.61 ÷ 56.1 = 0.100 mol\nM = 0.100 mol ÷ 0.500 L = 0.200 M',correct:true,
+explain:'Molar mass KOH = K(39.1) + O(16.0) + H(1.0) = 56.1 g/mol. Convert grams to moles first, then convert 500. mL to 0.500 L, then divide moles by liters.'},
+{preview:'M = 5.61 ÷ 56.1 ÷ 500 = 0.000200 M',correct:false,
+explain:'This forgot to convert mL to L. Dividing by 500 instead of 0.500 gives an answer 1000x too small. Always convert mL → L before calculating molarity.'},
+{preview:'M = 5.61 ÷ 0.500 = 11.2 M',correct:false,
+explain:'This skipped converting grams to moles entirely. You cannot divide grams by liters to get molarity — you must first convert mass to moles using the molar mass.'},
+{preview:'mol = 5.61 × 56.1 = 314.7\nM = 314.7 ÷ 0.500 = 629 M',correct:false,
+explain:'This multiplied by molar mass instead of dividing. To convert grams to moles, always DIVIDE by molar mass (g ÷ g/mol = mol).'}
+]},
+{label:'Part (b) — 2 pts',q:'The 0.200 M solution is diluted to a final volume of 1.00 L. What is the new molarity?',
+choices:[
+{preview:'C₁V₁ = C₂V₂\n(0.200)(0.500) = C₂(1.00)\nC₂ = 0.100 M',correct:true,
+explain:'Dilution equation: C₁V₁ = C₂V₂. Moles of solute are conserved — only the volume changes, which dilutes the concentration. Volume doubled → concentration halved.'},
+{preview:'C₂ = 0.200 + 0.100 = 0.300 M',correct:false,
+explain:'You cannot add concentrations during dilution. When you add water, the concentration DECREASES. Use C₁V₁ = C₂V₂ — only moles are conserved, not concentration.'},
+{preview:'C₂ = 0.200 M (unchanged)',correct:false,
+explain:'Adding water always changes the concentration. The moles stay the same but spread over a larger volume, so molarity decreases. The answer must be less than 0.200 M.'},
+{preview:'C₂ = 0.200 ÷ 0.500 = 0.400 M',correct:false,
+explain:'This divided by the old volume instead of the ratio of volumes. The correct equation is C₂ = C₁V₁ ÷ V₂ = (0.200 × 0.500) ÷ 1.00 = 0.100 M.'}
+]},
+{label:'Part (c) — 2 pts',q:'How many grams of KOH are in 50.0 mL of the diluted solution (0.100 M)?',
+choices:[
+{preview:'0.100 mol/L × 0.0500 L = 0.00500 mol\n0.00500 × 56.1 g/mol = 0.281 g',correct:true,
+explain:'Use molarity as a conversion factor: M × L = moles. Then moles × molar mass = grams. Always convert mL to L first (50.0 mL = 0.0500 L).'},
+{preview:'0.100 × 50.0 = 5.00 mol\n5.00 × 56.1 = 281 g',correct:false,
+explain:'This forgot to convert mL to L. 50.0 mL = 0.0500 L, not 50.0 L. Using 50.0 instead of 0.0500 gives an answer 1000x too large.'},
+{preview:'0.200 × 0.0500 = 0.0100 mol\n0.0100 × 56.1 = 0.561 g',correct:false,
+explain:'This used the original 0.200 M concentration instead of the diluted 0.100 M. Always use the concentration of the solution you are actually working with in part (c).'},
+{preview:'50.0 mL ÷ 56.1 g/mol = 0.891 g',correct:false,
+explain:'This divided volume by molar mass, which has no physical meaning. The correct path is: mL → L, then × molarity = moles, then × molar mass = grams.'}
+]}
+]},
+{n:2,title:'Percent Concentration and Osmolarity of MgSO₄',pts:7,parts:[
+{label:'Part (a) — 3 pts',q:'How many grams of MgSO₄ are present in 300. mL of a 2.5%(m/v) solution?',
+choices:[
+{preview:'2.5%(m/v) = 2.5 g per 100 mL\n300. mL × (2.5 g ÷ 100 mL) = 7.5 g',correct:true,
+explain:'%(m/v) means grams of solute per 100 mL of solution. Use it as a conversion factor: multiply volume by (% ÷ 100). 300 × 0.025 = 7.5 g.'},
+{preview:'2.5 × 300 = 750 g',correct:false,
+explain:'This multiplied without the "per 100 mL" denominator. 2.5%(m/v) does NOT mean 2.5 g per mL — it means 2.5 g per 100 mL. You must divide by 100.'},
+{preview:'300 mL × 2.5 g/mL = 750 g\n÷ 100 = 7.5 g',correct:false,
+explain:'The arithmetic happens to give 7.5 g, but the setup is wrong — there is no unit "g/mL" here. The correct reasoning is 2.5 g per 100 mL used as a conversion factor.'},
+{preview:'2.5% of 300 g solution = 7.5 g\n(using m/m instead of m/v)',correct:false,
+explain:'This treats it as %(m/m) — percent by mass. But the problem specifies %(m/v), which uses mL in the denominator, not g. The numbers happen to be close but the logic is wrong.'}
+]},
+{label:'Part (b) — 2 pts',q:'MgSO₄ dissociates completely. Calculate the osmolarity of a 0.15 M MgSO₄ solution.',
+choices:[
+{preview:'MgSO₄ → Mg²⁺ + SO₄²⁻ (i = 2)\nOsmolarity = 0.15 M × 2 = 0.30 Osm/L',correct:true,
+explain:'MgSO₄ dissociates into 2 particles: Mg²⁺ and SO₄²⁻. So i = 2. Osmolarity = molarity × i = 0.15 × 2 = 0.30 Osm/L.'},
+{preview:'Osmolarity = 0.15 M × 1 = 0.15 Osm/L',correct:false,
+explain:'This used i = 1, ignoring dissociation. MgSO₄ splits into TWO ions (Mg²⁺ + SO₄²⁻), so i = 2. For colligative properties, you must count ALL particles after dissociation.'},
+{preview:'MgSO₄ → Mg²⁺ + 2SO₄²⁻ (i = 3)\nOsmolarity = 0.15 × 3 = 0.45 Osm/L',correct:false,
+explain:'This confused MgSO₄ with MgCl₂. MgSO₄ gives Mg²⁺ and SO₄²⁻ (2 ions, i = 2). MgCl₂ gives Mg²⁺ + 2Cl⁻ (3 ions, i = 3). Check the formula carefully.'},
+{preview:'Osmolarity = 2(0.15) + 2(0.15) = 0.60',correct:false,
+explain:'This double-counted both ions. The formula is simply Osmolarity = Molarity × i. With i = 2: 0.15 × 2 = 0.30 Osm/L.'}
+]},
+{label:'Part (c) — 2 pts',q:'Is this 0.15 M MgSO₄ solution hypertonic, hypotonic, or isotonic to a 0.30 Osm/L solution?',
+choices:[
+{preview:'MgSO₄ osmolarity = 0.30 Osm/L (from b)\nOther solution = 0.30 Osm/L\n0.30 = 0.30 → ISOTONIC',correct:true,
+explain:'The osmolarity of the MgSO₄ solution (calculated in part b) is 0.30 Osm/L. The given solution is also 0.30 Osm/L. Equal osmolarities = isotonic. No net water movement occurs.'},
+{preview:'0.15 M < 0.30 Osm/L → hypotonic',correct:false,
+explain:'You cannot compare 0.15 M (molarity) directly to 0.30 Osm/L (osmolarity) — they have different units. You must convert MgSO₄ to osmolarity first (which = 0.30 Osm/L), then compare.'},
+{preview:'MgSO₄ is a salt → always hypertonic',correct:false,
+explain:'Tonicity cannot be determined by salt type alone. You must calculate and compare the actual osmolarities. Here both solutions are 0.30 Osm/L, so it is isotonic.'},
+{preview:'0.30 Osm/L > 0.15 M → hypertonic',correct:false,
+explain:'Again, comparing molarity to osmolarity is a units error. Convert first: MgSO₄ osmolarity = 0.15 × 2 = 0.30 Osm/L, which equals the given value → isotonic.'}
+]}
+]},
+{n:3,title:'Precipitation Reaction: Pb(NO₃)₂ + KI',pts:6,parts:[
+{label:'Part (a) — 3 pts',q:'Write the balanced equation for the double displacement reaction between Pb(NO₃)₂ and KI.',
+choices:[
+{preview:'Pb(NO₃)₂ + 2KI → PbI₂ + 2KNO₃',correct:true,
+explain:'Ions swap partners: Pb²⁺ pairs with I⁻ → PbI₂, and K⁺ pairs with NO₃⁻ → KNO₃. Balance: Pb²⁺ needs 2 I⁻, so coefficient 2 goes on KI and KNO₃.'},
+{preview:'Pb(NO₃)₂ + KI → PbI₂ + KNO₃\n(unbalanced)',correct:false,
+explain:'The products are correct but the equation is not balanced. Pb²⁺ requires 2 I⁻ to form PbI₂, so you need 2KI on the left and 2KNO₃ on the right to balance both K and NO₃.'},
+{preview:'Pb(NO₃)₂ + KI → PbNO₃ + KI₂',correct:false,
+explain:'The ions were swapped incorrectly. Pb²⁺ pairs with I⁻ (not NO₃ staying with Pb), and K⁺ pairs with NO₃⁻. Also PbNO₃ would require Pb⁺, but Pb is 2+. The correct products are PbI₂ and KNO₃.'},
+{preview:'2Pb(NO₃)₂ + KI → Pb₂I + 2KNO₃',correct:false,
+explain:'Pb₂I is not a valid ionic formula. Pb is 2+ and I is 1−, so they combine as PbI₂ (one Pb²⁺ needs two I⁻). The coefficient goes on KI, not on Pb(NO₃)₂.'}
+]},
+{label:'Part (b) — 2 pts',q:'Using the solubility rules, identify which product is the precipitate.',
+choices:[
+{preview:'PbI₂: I⁻ usually soluble, but Pb²⁺\nis an exception → PbI₂ insoluble ↓',correct:true,
+explain:'Check the solubility rules: chloride, bromide, and iodide are usually soluble, but exceptions include Ag⁺, Pb²⁺, and Hg₂²⁺. Since Pb²⁺ is on the exception list, PbI₂ is insoluble and forms a precipitate.'},
+{preview:'KNO₃: it contains K⁺ and NO₃⁻\nboth usually insoluble',correct:false,
+explain:'This is backward. Group IA ions (like K⁺) are ALWAYS soluble with no exceptions. Nitrates (NO₃⁻) are also ALWAYS soluble. KNO₃ stays dissolved in solution.'},
+{preview:'Both PbI₂ and KNO₃ precipitate',correct:false,
+explain:'Only PbI₂ precipitates. KNO₃ is completely soluble (K⁺ = Group IA, always soluble; NO₃⁻ = always soluble). Only one precipitate forms in this reaction.'},
+{preview:'Neither — both products are soluble',correct:false,
+explain:'PbI₂ is definitely insoluble. Iodide is usually soluble, but Pb²⁺ is explicitly listed as an exception. This is why the two solutions react visibly — a bright yellow PbI₂ precipitate forms.'}
+]},
+{label:'Part (c) — 1 pt',q:'Classify this reaction as combination, decomposition, displacement, exchange, or combustion.',
+choices:[
+{preview:'Exchange (Double Displacement)\nAX + BY → AY + BX\nTwo ionic compounds swap ion partners',correct:true,
+explain:'Two ionic compounds (Pb(NO₃)₂ and KI) exchange their ions to form two new compounds (PbI₂ and KNO₃). This is the defining pattern of an exchange (double displacement) reaction.'},
+{preview:'Displacement\nX + YZ → Y + XZ\n(single element replacing another)',correct:false,
+explain:'Displacement requires a pure element on one side replacing an element in a compound. Here, both reactants are ionic compounds — no pure element is involved. That makes it exchange, not displacement.'},
+{preview:'Combination\nX + Y → XY\n(two things become one)',correct:false,
+explain:'Combination produces a single product from two reactants. This reaction produces two products (PbI₂ and KNO₃), so it cannot be combination.'},
+{preview:'Decomposition\nXY → X + Y\n(one thing splits apart)',correct:false,
+explain:'Decomposition has one reactant that breaks into multiple products. This reaction has two reactants, so it is not decomposition.'}
+]}
+]},
+{n:4,title:'Reaction Classification and Redox Analysis',pts:8,parts:[
+{label:'Part (i) — 2 pts',q:'Fe₂O₃ + 2Al → Al₂O₃ + 2Fe. Classify the reaction type and state whether it is redox or nonredox.',
+choices:[
+{preview:'Type: Displacement\nAl (element) replaces Fe in a compound\nRedox: Al 0→+3 (oxidized), Fe +3→0 (reduced)',correct:true,
+explain:'A pure element (Al) replaces another element (Fe) from a compound (Fe₂O₃). That is the displacement pattern. For redox: Al goes from 0 to +3 (loses electrons = oxidized). Fe goes from +3 to 0 (gains electrons = reduced). This is the thermite reaction.'},
+{preview:'Type: Exchange\nTwo ionic compounds swap ions\nNonredox: no electron transfer',correct:false,
+explain:'Exchange requires two ionic compounds swapping partners. Here, Al is a pure element — not an ionic compound. When a pure element replaces another element in a compound, it is displacement (not exchange), and it is always redox.'},
+{preview:'Type: Combination\nX + Y → XY\nRedox: yes',correct:false,
+explain:'Combination produces a single product from two simpler substances. This reaction produces TWO products (Al₂O₃ and Fe), so it cannot be combination.'},
+{preview:'Type: Displacement\nRedox: nonredox (no ions change)',correct:false,
+explain:'The reaction type is correct (displacement), but it IS redox. Al changes from 0 to +3 and Fe changes from +3 to 0 — oxidation numbers change, meaning electrons are transferred.'}
+]},
+{label:'Part (ii) — 2 pts',q:'Ba(OH)₂ + 2HCl → BaCl₂ + 2H₂O. Classify the reaction type and state whether it is redox or nonredox.',
+choices:[
+{preview:'Type: Exchange (Double Displacement)\nBa(OH)₂ and HCl swap partners\nNonredox: all oxidation numbers unchanged',correct:true,
+explain:'Two compounds swap ion partners (Ba²⁺ with Cl⁻, and H⁺ with OH⁻ forming water). That is exchange. Check oxidation numbers: Ba stays +2, O stays −2, H stays +1 or −2, Cl stays −1. Nothing changed → nonredox. This is also an acid-base neutralization.'},
+{preview:'Type: Exchange\nRedox: yes (H changes from +1 to 0)',correct:false,
+explain:'H does NOT go to 0 here. In H₂O, hydrogen is still +1. H would be 0 only as H₂ gas (a pure element). All oxidation numbers stay the same in this reaction → nonredox.'},
+{preview:'Type: Displacement\nNonredox',correct:false,
+explain:'Displacement requires a pure element on one side. Both reactants here are compounds (Ba(OH)₂ and HCl) — no pure element. The pattern AX + BY → AY + BX is exchange.'},
+{preview:'Type: Combustion\nBa(OH)₂ burns in HCl',correct:false,
+explain:'Combustion requires a fuel reacting with O₂ to produce CO₂ and H₂O. HCl is not O₂, and this is an acid-base reaction, not combustion.'}
+]},
+{label:'Part (iii) — 2 pts',q:'2C₄H₁₀ + 13O₂ → 8CO₂ + 10H₂O. Classify the reaction type and state whether it is redox or nonredox.',
+choices:[
+{preview:'Type: Combustion\nHydrocarbon + O₂ → CO₂ + H₂O\nRedox: C oxidized (−2→+4), O reduced (0→−2)',correct:true,
+explain:'Butane (a hydrocarbon) reacts with O₂ to produce CO₂ and H₂O — that is the combustion pattern. It is redox because carbon is oxidized (increases oxidation number) and oxygen is reduced (decreases from 0 to −2). All combustion reactions are redox.'},
+{preview:'Type: Combustion\nNonredox: no ions involved',correct:false,
+explain:'Combustion is always redox. The absence of ions does not mean it is nonredox — redox is defined by changes in oxidation number, not by whether ions are present. C in butane is roughly −2 and becomes +4 in CO₂ → oxidized.'},
+{preview:'Type: Combination\nC + H + O → CO₂ + H₂O',correct:false,
+explain:'Combination produces ONE product from simpler substances. This produces two products (CO₂ and H₂O) and the reactants are compounds, not atoms. The fuel + O₂ → CO₂ + H₂O pattern is always combustion.'},
+{preview:'Type: Decomposition\nC₄H₁₀ breaks apart',correct:false,
+explain:'Decomposition has ONE reactant breaking into multiple products. This reaction has TWO reactants (C₄H₁₀ and O₂). Whenever you see a hydrocarbon reacting with O₂ to form CO₂ and H₂O, it is combustion.'}
+]},
+{label:'Part (c) — 2 pts',q:'In Cu + 2AgNO₃ → Cu(NO₃)₂ + 2Ag, give the oxidation number of Cu on each side, and state whether Cu is oxidized or reduced.',
+choices:[
+{preview:'Left: Cu = 0 (pure element)\nRight: Cu in Cu(NO₃)₂ = +2\n0 → +2: lost electrons → OXIDIZED',correct:true,
+explain:'On the left, Cu is a pure element — pure elements always have oxidation number 0. On the right, Cu is in Cu(NO₃)₂; since two NO₃⁻ carry −2 total and the compound is neutral, Cu = +2. Going from 0 to +2 means Cu lost electrons, so Cu is oxidized. Cu is the reducing agent.'},
+{preview:'Left: Cu = +1\nRight: Cu = +2\n+1 → +2: oxidized',correct:false,
+explain:'Cu on the LEFT is a pure metal — its oxidation number is 0, not +1. The rule is: pure elements (including metals by themselves) always have oxidation number = 0. The +1 would only apply if Cu were in a compound like Cu₂O.'},
+{preview:'Left: Cu = 0\nRight: Cu = +2\n0 → +2: REDUCED',correct:false,
+explain:'The oxidation numbers are correct (0 → +2), but the conclusion is wrong. When the oxidation number INCREASES (becomes more positive), the atom LOST electrons. Loss of electrons = OXIDATION. Cu is oxidized here, not reduced.'},
+{preview:'Left: Cu = 0\nRight: Cu = +2\nCu is the oxidizing agent',correct:false,
+explain:'The oxidation numbers are correct and Cu is indeed oxidized — but the oxidizing agent is what gets REDUCED, not what gets oxidized. Cu gets oxidized, so Cu is the REDUCING agent. AgNO₃ is the oxidizing agent (Ag goes from +1 to 0).'}
+]}
+]},
+{n:5,title:'Equilibrium Expression and Keq',pts:7,parts:[
+{label:'Part (a) — 2 pts',q:'For 2NO(g) + O₂(g) ⇌ 2NO₂(g), write the equilibrium constant expression K.',
+choices:[
+{preview:'K = [NO₂]² / ([NO]² × [O₂])',correct:true,
+explain:'Products go in the numerator, reactants in the denominator. Stoichiometric coefficients become exponents. The coefficient of NO is 2, so [NO]². The coefficient of O₂ is 1, so [O₂]¹ = [O₂]. The coefficient of NO₂ is 2, so [NO₂]².'},
+{preview:'K = [NO]²[O₂] / [NO₂]²',correct:false,
+explain:'Products always go in the NUMERATOR and reactants in the DENOMINATOR. This expression has them flipped. K = [products]/[reactants] — never the other way.'},
+{preview:'K = [NO₂]² / ([NO][O₂])',correct:false,
+explain:'The exponent on [NO] is missing. The coefficient 2 in front of NO must become the exponent 2 on [NO]. The expression should have [NO]², not [NO].'},
+{preview:'K = [NO₂] / ([NO][O₂])',correct:false,
+explain:'All three exponents are wrong. The coefficient of NO₂ is 2 → [NO₂]². The coefficient of NO is 2 → [NO]². The coefficient of O₂ is 1 → [O₂]. Always convert coefficients to exponents.'}
+]},
+{label:'Part (b) — 2 pts',q:'Given [NO]=0.050 M, [O₂]=0.030 M, [NO₂]=0.120 M, calculate the value of K.',
+choices:[
+{preview:'Numerator: (0.120)² = 0.0144\nDenominator: (0.050)²(0.030) = 7.5×10⁻⁵\nK = 0.0144 ÷ 7.5×10⁻⁵ = 192',correct:true,
+explain:'Square [NO₂]: (0.120)² = 0.0144. Square [NO]: (0.050)² = 0.0025. Multiply by [O₂]: 0.0025 × 0.030 = 0.000075 = 7.5×10⁻⁵. Divide: 0.0144 ÷ 7.5×10⁻⁵ = 192.'},
+{preview:'K = [NO]²[O₂] / [NO₂]² = 1/192 ≈ 0.0052',correct:false,
+explain:'The numerator and denominator are flipped. Products (NO₂) must go on top. This gives the reciprocal of K, not K itself.'},
+{preview:'K = (0.120) / (0.050 × 0.030) = 80',correct:false,
+explain:'This forgot to apply the exponents. (0.120) should be (0.120)² and (0.050) should be (0.050)². The coefficient 2 in the balanced equation must become the exponent in the K expression.'},
+{preview:'K = 0.120 / (0.050 + 0.030) = 1.50',correct:false,
+explain:'Equilibrium expressions multiply concentrations (with exponents), they do not add them. The denominator should be [NO]² × [O₂], not [NO] + [O₂].'}
+]},
+{label:'Part (c) — 1 pt',q:'Based on K = 192, are products or reactants favored at equilibrium?',
+choices:[
+{preview:'K = 192 >> 1 → Products strongly favored\n(numerator >> denominator at equilibrium)',correct:true,
+explain:'K >> 1 means [products]/[reactants] is large at equilibrium, so products dominate. K = 192 is well above 1, so the reaction proceeds substantially to the right and products are strongly favored.'},
+{preview:'K = 192, close to 200 → reactants favored',correct:false,
+explain:'The magnitude of K determines which side is favored: K > 1 = products favored, K < 1 = reactants favored. K = 192 is much greater than 1, so products are favored regardless of how large the number looks.'},
+{preview:'K = 192 → equal amounts of\nreactants and products',correct:false,
+explain:'Equal amounts would mean K ≈ 1. K = 192 means products are far more abundant than reactants at equilibrium. Only K = 1 indicates roughly equal concentrations (and even then, not necessarily equal moles due to exponents).'},
+{preview:'Cannot determine from K alone',correct:false,
+explain:'K directly tells you the equilibrium position. K > 1 = products favored. K < 1 = reactants favored. K = 192 unambiguously indicates products are strongly favored.'}
+]},
+{label:'Part (d) — 1 pt',q:'If more O₂ is added to the system at equilibrium, which direction does the equilibrium shift?',
+choices:[
+{preview:'Shifts RIGHT (toward products)\nAdding a reactant → system consumes it\nby making more NO₂',correct:true,
+explain:"Le Chatelier's principle: adding a reactant stresses the equilibrium, and the system responds by shifting to consume the added reactant. O₂ is a reactant, so the system shifts right (forward reaction), producing more NO₂ until a new equilibrium is reached."},
+{preview:'Shifts LEFT (toward reactants)\nMore O₂ = more pressure = left shift',correct:false,
+explain:'Adding O₂ shifts toward products (right), not reactants. A left shift would occur if you added a PRODUCT (NO₂) or removed a reactant. Adding any reactant always shifts toward products.'},
+{preview:'No shift — O₂ is already present\nand in excess',correct:false,
+explain:"Any change in concentration of a reactant or product causes a shift, regardless of whether it was already present. Le Chatelier's principle applies whenever the current concentrations no longer satisfy the K expression."},
+{preview:'Shifts right AND K increases',correct:false,
+explain:'The direction (right) is correct, but K does NOT change. K depends only on temperature. Adding O₂ shifts the position of equilibrium but does not change the value of K.'}
+]},
+{label:'Part (e) — 1 pt',q:'Does adding O₂ change the numerical value of K?',
+choices:[
+{preview:'NO — K depends only on temperature\nAdding O₂ shifts concentrations,\nbut K stays at 192',correct:true,
+explain:'K is the equilibrium constant — it only changes when TEMPERATURE changes. Adding O₂ shifts the equilibrium position (changes concentrations), but once the system re-equilibrates, the new concentrations still satisfy K = 192.'},
+{preview:'YES — more reactant means\nlarger K value',correct:false,
+explain:'Adding reactant does not change K. The system simply shifts to consume the added O₂ until the ratio [products]/[reactants] returns to the same K value. Concentration changes never change K.'},
+{preview:'YES — the shift to products\ncauses K to increase',correct:false,
+explain:'Even though the system shifts right (toward products), this does not increase K. The new equilibrium concentrations will be different, but when plugged into the K expression, they still equal 192. K is unchanged.'},
+{preview:'K becomes undefined when\nconcentrations change',correct:false,
+explain:'K is always defined at a given temperature. It is a fixed value at constant temperature. No matter how concentrations change (by adding reactants, products, or diluting), K remains the same.'}
+]}
+]},
+{n:6,title:'Activation Energy, Temperature, and Catalysts',pts:6,parts:[
+{label:'Part (a) — 2 pts',q:'A reaction has a large activation energy. Would it proceed quickly or slowly at room temperature? Explain.',
+choices:[
+{preview:'SLOWLY — large Ea means only a tiny\nfraction of collisions have enough\nenergy to react at room temperature',correct:true,
+explain:'Activation energy (Ea) is the minimum energy a collision must have to produce a reaction. A large Ea means the energy barrier is high. At room temperature, most molecules have relatively low kinetic energy, so very few collisions succeed. Result: slow reaction.'},
+{preview:'QUICKLY — the reaction is exothermic\nso it releases energy and speeds up',correct:false,
+explain:"Exothermic (ΔH) and fast (rate) are independent concepts. A reaction can be very exothermic but still extremely slow if Ea is large. ΔH describes the energy difference between products and reactants; Ea describes the barrier to get there. Burning wood is exothermic but doesn't happen spontaneously at room temperature."},
+{preview:'QUICKLY — large Ea means more energy\nis available to drive the reaction',correct:false,
+explain:'Large Ea means a HIGH BARRIER, not extra driving energy. Ea is the energy you need to PUT IN to get the reaction started, not the energy released. A large Ea always means a slower reaction at a given temperature.'},
+{preview:'Cannot determine — need to know ΔG',correct:false,
+explain:'ΔG determines spontaneity (will it happen?), not rate (how fast?). Ea controls rate. A reaction with large Ea will proceed slowly at room temperature regardless of ΔG.'}
+]},
+{label:'Part (b) — 2 pts',q:'How does raising the temperature affect the rate of this reaction?',
+choices:[
+{preview:'Rate INCREASES via two effects:\n1. More frequent collisions (faster molecules)\n2. More collisions exceed Ea threshold',correct:true,
+explain:'Higher temperature increases molecular speed, causing more frequent collisions (effect 1). More importantly, more molecules now have enough kinetic energy to overcome the activation energy barrier (effect 2). Both effects increase the rate. For full credit, mention both.'},
+{preview:'Rate increases because temperature\nlowers the activation energy',correct:false,
+explain:'Temperature does NOT lower Ea. A catalyst lowers Ea. Temperature increases the kinetic energy of molecules, which means more of them can OVERCOME the existing Ea barrier — but the barrier height itself does not change.'},
+{preview:'Rate increases because molecules\nmove faster and collide more often',correct:false,
+explain:"This is partially correct (effect 1) but incomplete. For full credit you also need to mention that more molecules now have enough energy to exceed the activation energy threshold (effect 2). Just mentioning speed isn't sufficient."},
+{preview:'No effect — large Ea blocks all collisions\nregardless of temperature',correct:false,
+explain:'Temperature always increases rate, even with large Ea. Raising temperature shifts the distribution of molecular energies so a greater fraction exceeds Ea. The increase may be small if Ea is very large, but it is never zero.'}
+]},
+{label:'Part (c) — 2 pts',q:'If a catalyst is added, does the activation energy increase, decrease, or stay the same? Explain.',
+choices:[
+{preview:'DECREASE — catalyst provides an\nalternative pathway with lower Ea\n(K and ΔH are unchanged)',correct:true,
+explain:'A catalyst works by providing a different reaction mechanism (pathway) that has a lower activation energy. This allows more collisions to succeed at the same temperature, speeding up the reaction. Critically: K, ΔH, and the equilibrium position are all unchanged. The catalyst is not consumed.'},
+{preview:'INCREASE — catalyst requires more\nenergy to activate the reaction',correct:false,
+explain:'This is the opposite of what a catalyst does. A catalyst LOWERS Ea by providing an easier pathway. If it increased Ea, it would slow the reaction — that would be an inhibitor, not a catalyst.'},
+{preview:'STAY THE SAME — catalyst only\nshifts the equilibrium position',correct:false,
+explain:'Two errors here: catalysts do NOT shift equilibrium (both forward and reverse rates speed up equally), and they DO change Ea (they lower it). Catalysts lower Ea; they do not affect the equilibrium position or K.'},
+{preview:'DECREASE — catalyst lowers Ea AND\nincreases K and the amount of product',correct:false,
+explain:'The Ea part is correct (decrease), but K and the amount of product at equilibrium are NOT changed by a catalyst. A catalyst only changes how QUICKLY equilibrium is reached, not where equilibrium lies.'}
+]}
+]},
+{n:7,title:'pH from [OH⁻]',pts:6,parts:[
+{label:'Part (a) — 2 pts',q:'A solution has [OH⁻] = 5.0 × 10⁻¹² M. Calculate [H₃O⁺].',
+choices:[
+{preview:'[H₃O⁺] = Kw ÷ [OH⁻]\n= 1.0×10⁻¹⁴ ÷ 5.0×10⁻¹²\n= 2.0 × 10⁻³ M',correct:true,
+explain:'Use Kw = [H₃O⁺][OH⁻] = 1.0×10⁻¹⁴. Rearrange: [H₃O⁺] = 1.0×10⁻¹⁴ ÷ 5.0×10⁻¹². Divide coefficients: 1.0÷5.0 = 0.20. Divide powers of 10: 10⁻¹⁴÷10⁻¹² = 10⁻². Total: 0.20×10⁻² = 2.0×10⁻³ M.'},
+{preview:'[H₃O⁺] = [OH⁻] = 5.0 × 10⁻¹² M',correct:false,
+explain:'[H₃O⁺] = [OH⁻] only in pure neutral water (pH 7). Here [OH⁻] = 5.0×10⁻¹² is much smaller than 10⁻⁷ (neutral), meaning the solution is acidic and [H₃O⁺] >> [OH⁻]. Use Kw to find [H₃O⁺].'},
+{preview:'[H₃O⁺] = 1.0×10⁻¹⁴ × 5.0×10⁻¹²\n= 5.0 × 10⁻²⁶ M',correct:false,
+explain:'This multiplied instead of divided. Kw = [H₃O⁺] × [OH⁻], so [H₃O⁺] = Kw ÷ [OH⁻]. When [OH⁻] is very small, [H₃O⁺] must be relatively large (the product must equal 10⁻¹⁴).'},
+{preview:'[H₃O⁺] = 14 - 12 = 2, so\n[H₃O⁺] = 2 M',correct:false,
+explain:'Subtracting exponents gives you pH − pOH, not [H₃O⁺]. The concentration is 2.0×10⁻³ M, not 2 M. Use Kw = [H₃O⁺][OH⁻] = 1.0×10⁻¹⁴ and divide both sides by [OH⁻].'}
+]},
+{label:'Part (b) — 2 pts',q:'Calculate the pH.',
+choices:[
+{preview:'pH = −log[H₃O⁺] = −log(2.0×10⁻³)\n= −(log2.0 + log10⁻³)\n= −(0.301 − 3) = 2.70',correct:true,
+explain:'Apply pH = −log[H₃O⁺]. Expand: −log(2.0×10⁻³) = −(log 2.0 + log 10⁻³) = −(0.301 + (−3)) = −(0.301 − 3) = −(−2.699) = 2.70. pH < 7, confirming the solution is acidic.'},
+{preview:'pH = log(2.0×10⁻³) = −2.70\n(forgot the negative sign)',correct:false,
+explain:'The formula is pH = NEGATIVE log of [H₃O⁺]. pH = −log[H₃O⁺], not +log[H₃O⁺]. Dropping the negative sign gives a negative pH value, which would indicate an extremely concentrated strong acid — not this solution.'},
+{preview:'pH = −log(10⁻³) = 3.00\n(ignored the 2.0 coefficient)',correct:false,
+explain:'You must include the coefficient 2.0 in the log calculation. log(2.0×10⁻³) = log(2.0) + log(10⁻³) = 0.301 + (−3) = −2.699. The pH = 2.70, not 3.00. The coefficient shifts the answer by log(2.0) = 0.30.'},
+{preview:'pOH = −log(5.0×10⁻¹²) = 11.30\nthen pH = 11.30 (same value)',correct:false,
+explain:'pOH = −log[OH⁻] = 11.30 is correct, but pH ≠ pOH. The relationship is pH + pOH = 14, so pH = 14 − 11.30 = 2.70. Using pOH as pH would give the wrong answer.'}
+]},
+{label:'Part (c) — 1 pt',q:'Is this solution acidic, basic, or neutral?',
+choices:[
+{preview:'ACIDIC — pH = 2.70 < 7\n[H₃O⁺] = 2.0×10⁻³ >> [OH⁻] = 5.0×10⁻¹²',correct:true,
+explain:'Any pH below 7 is acidic. pH 2.70 is well below 7. This is also confirmed by [H₃O⁺] = 2.0×10⁻³ M being much larger than [OH⁻] = 5.0×10⁻¹² M.'},
+{preview:'BASIC — the problem gave us [OH⁻],\nso the solution must be basic',correct:false,
+explain:'Every aqueous solution contains both H₃O⁺ and OH⁻. Having an [OH⁻] value does not make a solution basic. What matters is whether [OH⁻] > [H₃O⁺] (basic) or [H₃O⁺] > [OH⁻] (acidic). Here [H₃O⁺] >> [OH⁻] → acidic.'},
+{preview:'NEUTRAL — pH is between 1 and 14',correct:false,
+explain:'Neutral means pH = exactly 7 (or [H₃O⁺] = [OH⁻] = 10⁻⁷). Being between 1 and 14 just means it is a valid aqueous solution, not that it is neutral. pH 2.70 is far from 7 and is strongly acidic.'},
+{preview:'BASIC — [OH⁻] = 5.0×10⁻¹² shows\nhydroxide is present',correct:false,
+explain:'Hydroxide is present in every aqueous solution. The question is which ion is more abundant. [OH⁻] = 5.0×10⁻¹² is far less than 10⁻⁷ (neutral), while [H₃O⁺] = 2.0×10⁻³ is far greater than 10⁻⁷. The solution is acidic.'}
+]},
+{label:'Part (d) — 1 pt',q:'A second solution has pH = 6.00. Which solution is more acidic?',
+choices:[
+{preview:'First sample (pH 2.70) is more acidic\nLower pH = more H₃O⁺ = more acidic\nDifference: 10^(6.00−2.70) ≈ 2000× more acidic',correct:true,
+explain:'Lower pH always means more acidic. pH 2.70 < 6.00, so the first solution is more acidic. The difference in [H₃O⁺] is 10^(6.00−2.70) = 10^3.30 ≈ 2000x — the first solution has about 2000 times more H₃O⁺.'},
+{preview:'Second sample (pH 6.00) is more acidic\nbecause it is closer to neutral (pH 7)',correct:false,
+explain:'Being closer to 7 means LESS acidic, not more acidic. pH and acidity run in opposite directions: lower pH = more H₃O⁺ = more acidic. pH 6 is less acidic than pH 2.70.'},
+{preview:'Both equally acidic\n(both are below pH 7)',correct:false,
+explain:'Both are acidic (pH < 7), but they are not equally acidic. Equal acidity would require equal pH values. pH 2.70 has approximately 2000 times more H₃O⁺ than pH 6.00.'},
+{preview:'Second sample (pH 6.00) — larger number\nmeans more acidic',correct:false,
+explain:'Larger pH number means LESS acidic (fewer H₃O⁺ ions). pH scale is inverse: pH 2 is 10,000 times more acidic than pH 6. Lower pH = more H₃O⁺ = more acidic.'}
+]}
+]},
+{n:8,title:'Henderson-Hasselbalch and NH₃/NH₄⁺ Buffer',pts:8,parts:[
+{label:'Part (a) — 2 pts',q:'In the NH₃/NH₄Cl buffer (pKa of NH₄⁺ = 9.25), identify the weak acid and conjugate base.',
+choices:[
+{preview:'Weak acid: NH₄⁺ (donates H⁺ → NH₃)\nConjugate base: NH₃ (accepts H⁺ → NH₄⁺)',correct:true,
+explain:'NH₄⁺ can donate a proton to become NH₃ → it is the weak acid (HA in Henderson-Hasselbalch). NH₃ is what results when NH₄⁺ loses that proton → it is the conjugate base (A⁻). The pKa given (9.25) applies to the NH₄⁺ ionization: NH₄⁺ ⇌ H⁺ + NH₃.'},
+{preview:'Weak acid: NH₃ (the base compound)\nConjugate base: NH₄⁺',correct:false,
+explain:'NH₃ is a weak BASE, not a weak acid. NH₄⁺ is the ACID in this pair because it can donate an H⁺. In Henderson-Hasselbalch, [HA] = [NH₄⁺] (acid, bottom of fraction) and [A⁻] = [NH₃] (conjugate base, top of fraction).'},
+{preview:'Weak acid: NH₄Cl (the whole salt)\nConjugate base: NH₃',correct:false,
+explain:'NH₄Cl is a salt that fully dissociates into NH₄⁺ and Cl⁻. The Cl⁻ is a spectator ion. The actual weak acid is NH₄⁺ (the ion), not the salt as a whole.'},
+{preview:'Both NH₃ and NH₄⁺ are weak acids\nin this buffer',correct:false,
+explain:'A buffer has ONE weak acid and ONE conjugate base. NH₄⁺ is the weak acid (H⁺ donor) and NH₃ is the conjugate base (H⁺ acceptor). They are a conjugate acid-base pair, not two acids.'}
+]},
+{label:'Part (b) — 3 pts',q:'Calculate the pH of a buffer containing 0.40 M NH₃ and 0.25 M NH₄Cl, pKa = 9.25.',
+choices:[
+{preview:'pH = pKa + log([A⁻]/[HA])\n= 9.25 + log(0.40/0.25)\n= 9.25 + log(1.6) = 9.25 + 0.20 = 9.45',correct:true,
+explain:'Identify: [A⁻] = [NH₃] = 0.40 M (conjugate base, numerator) and [HA] = [NH₄⁺] = 0.25 M (weak acid, denominator). Ratio = 0.40/0.25 = 1.6. log(1.6) = 0.204. pH = 9.25 + 0.20 = 9.45.'},
+{preview:'pH = 9.25 + log(0.25/0.40)\n= 9.25 + log(0.625)\n= 9.25 − 0.20 = 9.05',correct:false,
+explain:'The ratio is inverted. Henderson-Hasselbalch is pH = pKa + log([A⁻]/[HA]) where A⁻ (conjugate BASE = NH₃) goes on TOP and HA (weak ACID = NH₄⁺) goes on the BOTTOM. Swapping them gives a pH 0.40 units too low.'},
+{preview:'pH = pKa = 9.25\n(concentrations cancel)',correct:false,
+explain:'pH = pKa only when [A⁻] = [HA] (equal concentrations). Here [NH₃] = 0.40 M ≠ [NH₄⁺] = 0.25 M, so the log term is not zero. pH = 9.25 + log(1.6) = 9.45.'},
+{preview:'pH = 9.25 + log(0.40 + 0.25)\n= 9.25 + log(0.65) = 9.07',correct:false,
+explain:'Henderson-Hasselbalch uses the RATIO [A⁻]/[HA], not the sum. You divide the conjugate base concentration by the weak acid concentration: 0.40/0.25 = 1.6. Do not add them.'}
+]},
+{label:'Part (c) — 2 pts',q:'A small amount of strong base (OH⁻) is added. Which component reacts and what does it become?',
+choices:[
+{preview:'OH⁻ reacts with NH₄⁺ (the weak acid)\nNH₄⁺ + OH⁻ → NH₃ + H₂O\nSome NH₄⁺ is converted to NH₃',correct:true,
+explain:'Added OH⁻ (a base) reacts with the acidic component of the buffer, which is NH₄⁺. The reaction: NH₄⁺ + OH⁻ → NH₃ + H₂O. The base is neutralized by the weak acid, preventing a large pH increase. This is the key protective function of a buffer.'},
+{preview:'OH⁻ reacts with NH₃ (the base)\nNH₃ + OH⁻ → NH₄⁺ + O²⁻',correct:false,
+explain:'A base (OH⁻) reacts with an ACID, not with another base. NH₃ is the basic component — it would react with added ACID (H⁺), not with added base. Also, O²⁻ is not a product of this type of reaction.'},
+{preview:'OH⁻ reacts with water\nOH⁻ + H₂O → H₂O + OH⁻ (no change)',correct:false,
+explain:'OH⁻ does react with water to some extent (autoionization), but that is negligible. In this buffer, OH⁻ primarily reacts with the acidic component NH₄⁺, which is present in significant concentration.'},
+{preview:'OH⁻ reacts with both equally,\nand pH does not change at all',correct:false,
+explain:'OH⁻ selectively reacts with the acid (NH₄⁺). pH does change slightly when base is added — the buffer resists a LARGE change, not all change. The ratio [NH₃]/[NH₄⁺] shifts slightly, causing a small pH increase.'}
+]},
+{label:'Part (d) — 1 pt',q:'Would this buffer be effective at maintaining pH near 7.0?',
+choices:[
+{preview:'NO — buffer is only effective within\npKa ± 1 = 8.25 to 10.25\npH 7.0 is outside this range',correct:true,
+explain:"A buffer works effectively only within approximately ±1 pH unit of its pKa. This buffer's pKa is 9.25, so it is effective from pH ~8.25 to ~10.25. pH 7.0 is 2.25 units away from pKa — too far outside the range for effective buffering."},
+{preview:'YES — NH₃/NH₄⁺ buffer works\nat any pH because both components exist',correct:false,
+explain:'Buffers are NOT universal. At pH 7.0, which is far from pKa 9.25, nearly all of the buffer would be in one form (mostly NH₄⁺). There would be very little of the other component available to neutralize added acid or base.'},
+{preview:'YES — pH 7.0 is physiological,\nand this buffer is used in blood',correct:false,
+explain:"Blood is buffered by the bicarbonate system (H₂CO₃/HCO₃⁻, pKa ≈ 6.35) and phosphate buffer — not NH₃/NH₄⁺. This buffer's pKa of 9.25 is too far from 7.4 for it to work in blood."},
+{preview:'NO — this buffer only works at\nexactly pH = 9.25 (the pKa)',correct:false,
+explain:'Buffers are effective within a RANGE of about pKa ± 1, not just at the exact pKa. At pKa, the buffer has maximum capacity. But it still works reasonably well from pH 8.25 to 10.25.'}
+]}
+]},
+{n:9,title:'Conjugate Pairs and Acid Strength of HSO₄⁻',pts:7,parts:[
+{label:'Part (a) — 2 pts',q:'In HSO₄⁻ + H₂O ⇌ SO₄²⁻ + H₃O⁺, identify the two conjugate acid-base pairs.',
+choices:[
+{preview:'Pair 1: HSO₄⁻ (acid) / SO₄²⁻ (conj. base)\nPair 2: H₂O (base) / H₃O⁺ (conj. acid)\nEach pair differs by exactly one H⁺',correct:true,
+explain:'Track the proton: HSO₄⁻ loses an H⁺ to become SO₄²⁻ — they form Pair 1. H₂O gains that H⁺ to become H₃O⁺ — they form Pair 2. Every Brønsted-Lowry proton transfer produces exactly two conjugate pairs.'},
+{preview:'Pair 1: HSO₄⁻ / H₃O⁺\nPair 2: SO₄²⁻ / H₂O',correct:false,
+explain:'These are not conjugate pairs. Conjugate pairs are formed by the same species losing or gaining one H⁺. HSO₄⁻ loses H⁺ to give SO₄²⁻ (Pair 1). H₂O gains H⁺ to give H₃O⁺ (Pair 2). The pairs are always donor/recipient within the same species.'},
+{preview:'Only one pair: HSO₄⁻ / SO₄²⁻\n(H₂O is neutral, not a base)',correct:false,
+explain:'Every proton-transfer reaction has exactly TWO conjugate pairs. H₂O is acting as a Brønsted-Lowry base here because it accepts H⁺ from HSO₄⁻. H₂O / H₃O⁺ is the second conjugate pair.'},
+{preview:'Pair 1: H₂SO₄ / HSO₄⁻\nPair 2: H₂O / OH⁻',correct:false,
+explain:'H₂SO₄ and OH⁻ are not present in this reaction. The conjugate pairs must be identified from the species ACTUALLY in the equation: HSO₄⁻, H₂O, SO₄²⁻, and H₃O⁺.'}
+]},
+{label:'Part (b) — 2 pts',q:'Is water acting as an acid or a base in this reaction? Explain.',
+choices:[
+{preview:'BASE — water ACCEPTS a proton\nfrom HSO₄⁻ to become H₃O⁺\nBrønsted-Lowry base = proton acceptor',correct:true,
+explain:'Track the proton: HSO₄⁻ (donor) gives H⁺ to H₂O (acceptor) → H₃O⁺. Brønsted-Lowry base = proton acceptor. Since water accepts H⁺ here, it is acting as a base. This shows water is amphiprotic (can act as either acid or base depending on context).'},
+{preview:'ACID — water donates H⁺ to\nHSO₄⁻ to form SO₄²⁻',correct:false,
+explain:'Water is on the receiving end of the proton in this reaction, not the donating end. HSO₄⁻ is the H⁺ donor (acid). H₂O accepts that H⁺ and becomes H₃O⁺ — that is the base role, not the acid role.'},
+{preview:'NEITHER — water is neutral\nand does not act as acid or base',correct:false,
+explain:'Water is amphiprotic and absolutely acts as an acid or base in many reactions. In this reaction, H₂O accepts H⁺ from HSO₄⁻ to form H₃O⁺ — that is the Brønsted-Lowry base role.'},
+{preview:'BOTH — water is amphiprotic\nso it acts as acid and base simultaneously',correct:false,
+explain:'Water is amphiprotic (capable of both), but in THIS specific reaction it plays only ONE role: accepting H⁺ (base). Amphiprotic means it CAN do both in different reactions, not that it does both at once in the same reaction.'}
+]},
+{label:'Part (c) — 3 pts',q:'HSO₄⁻ ionizes only partially. Classify it as a strong or weak acid and explain your reasoning.',
+choices:[
+{preview:'WEAK acid — ionizes only partially\nStrong acids ionize ~100%\nPartial ionization = weak acid by definition',correct:true,
+explain:'The definition: strong acid = ionizes ~100% (essentially complete). Weak acid = ionizes only partially (<5%). The question states HSO₄⁻ "ionizes only partially" — this directly satisfies the definition of a weak acid. Note: H₂SO₄ is strong for its FIRST ionization, but HSO₄⁻ is a different species and is weak for the second ionization.'},
+{preview:'STRONG acid — it comes from\nH₂SO₄ which is a strong acid',correct:false,
+explain:'H₂SO₄ is strong only for its FIRST ionization (H₂SO₄ → H⁺ + HSO₄⁻). HSO₄⁻ is the product of that first step and is itself a separate acid with its own ionization. Because HSO₄⁻ only partially ionizes (HSO₄⁻ ⇌ H⁺ + SO₄²⁻), it is classified as weak.'},
+{preview:'STRONG acid — any acid that produces\nH⁺ in water is strong',correct:false,
+explain:'All acids produce H⁺ in water — that is the definition of an acid, not the definition of strong. The distinction is HOW MUCH: strong acids produce H⁺ essentially completely (~100%); weak acids produce H⁺ only partially. HSO₄⁻ partially ionizes → weak.'},
+{preview:'Cannot be classified — it is an\nintermediate species between H₂SO₄\nand SO₄²⁻',correct:false,
+explain:'HSO₄⁻ is a real acid (it can donate H⁺) and can absolutely be classified. Its ionization is only partial → it is a weak acid. Being an intermediate species does not exempt it from the strong/weak classification.'}
+]}
+]},
+{n:10,title:'Equivalents and Millimoles from Clinical Lab Values',pts:6,parts:[
+{label:'Part (a) — 2 pts',q:'A patient\'s Ca²⁺ is 5.0 mEq/L. Convert to milliequivalents per 100 mL.',
+choices:[
+{preview:'1 L = 10 × 100 mL\n5.0 mEq/L ÷ 10 = 0.50 mEq/100 mL',correct:true,
+explain:'1 liter = 1000 mL = 10 × 100 mL. To go from per-liter to per-100-mL, divide by 10. 5.0 mEq/L ÷ 10 = 0.50 mEq per 100 mL.'},
+{preview:'5.0 mEq/L × 10 = 50 mEq/100 mL',correct:false,
+explain:'This multiplied by 10 instead of dividing. Going from a larger unit (per liter) to a smaller unit (per 100 mL) means the NUMBER decreases. 1 L contains 10 × 100 mL, so divide by 10: 5.0 ÷ 10 = 0.50 mEq/100 mL.'},
+{preview:'5.0 mEq/L ÷ 1000 = 0.0050 mEq/100 mL',correct:false,
+explain:'Dividing by 1000 converts per-liter to per-mL (not per-100-mL). To convert to per-100-mL, divide by 10 (since 1 L = 10 × 100 mL). 5.0 ÷ 10 = 0.50 mEq/100 mL.'},
+{preview:'5.0 mEq/L = 5.0 mEq/100 mL\n(units are close enough)',correct:false,
+explain:'1 L and 100 mL are not the same volume — 1 L is 10 times larger than 100 mL. The concentration per 100 mL must be 10 times smaller: 5.0 ÷ 10 = 0.50 mEq/100 mL.'}
+]},
+{label:'Part (b) — 2 pts',q:'How many millimoles of Ca²⁺ (charge 2+) are in 1 L of this patient\'s blood?',
+choices:[
+{preview:'Ca²⁺ charge = 2+, so 1 mmol = 2 mEq\nmmol = mEq ÷ charge = 5.0 ÷ 2 = 2.5 mmol',correct:true,
+explain:'The relationship: Eq = mol × |charge|, so mol = Eq ÷ |charge|. Ca²⁺ has charge 2+, so every 1 mmol Ca²⁺ carries 2 mEq of charge. To find mmol: 5.0 mEq ÷ 2 = 2.5 mmol Ca²⁺.'},
+{preview:'mmol = mEq = 5.0 mmol\n(they are the same)',correct:false,
+explain:'mEq = mmol only for singly charged ions (charge = ±1). Ca²⁺ has charge 2+, so 1 mmol = 2 mEq. Divide by the charge to get mmol: 5.0 mEq ÷ 2 = 2.5 mmol.'},
+{preview:'mmol = mEq × charge = 5.0 × 2 = 10 mmol',correct:false,
+explain:'This multiplied instead of divided. The formula is mmol = mEq ÷ charge (not × charge). Since 1 mmol of Ca²⁺ carries 2 mEq, you need fewer mmol than mEq: 5.0 ÷ 2 = 2.5 mmol.'},
+{preview:'mmol = mEq ÷ (charge²) = 5.0 ÷ 4 = 1.25 mmol',correct:false,
+explain:'The formula uses the charge itself (not charge squared). mmol = mEq ÷ |charge| = 5.0 ÷ 2 = 2.5 mmol. There is no squaring in this relationship.'}
+]},
+{label:'Part (c) — 2 pts',q:'A second patient has Na⁺ at 140 mEq/L. How many millimoles of Na⁺ per liter? (Na⁺ charge = 1+)',
+choices:[
+{preview:'Na⁺ charge = 1+, so 1 mmol = 1 mEq\nmmol = 140 mEq ÷ 1 = 140 mmol',correct:true,
+explain:'Na⁺ has charge 1+. The relationship: mmol = mEq ÷ |charge| = 140 ÷ 1 = 140 mmol. For singly charged ions, mEq and mmol are numerically equal. This is why Na⁺ clinical values are often stated interchangeably in mEq/L and mmol/L.'},
+{preview:'mmol = 140 ÷ 2 = 70 mmol\n(used Ca²⁺ charge by mistake)',correct:false,
+explain:'Na⁺ has a charge of 1+, not 2+. Do not carry over the charge from part (b). mmol = mEq ÷ |charge| = 140 ÷ 1 = 140 mmol.'},
+{preview:'mmol = 140 × 2 = 280 mmol',correct:false,
+explain:'This used the wrong operation (multiplication) and the wrong charge (2+ from Ca²⁺ instead of 1+ from Na⁺). For Na⁺: mmol = mEq ÷ 1 = 140 mmol.'},
+{preview:'mmol = 14 mmol\n(moved decimal by accident)',correct:false,
+explain:'No conversion factor of 10 applies here. mmol = mEq ÷ |charge| = 140 ÷ 1 = 140 mmol. For a singly charged ion, mEq and mmol are equal.'}
+]}
+]}
+];
+
+let mcState={},frState={};
+
+function resetExam(){
+  if(!confirm('Reset all answers? This cannot be undone.'))return;
+  mcState={};frState={};buildMC();buildFR();updateScore();
+}
+
+function updateScore(){
+  const c=Object.values(mcState).filter(v=>v==='correct').length;
+  document.getElementById('scoreDisplay').textContent=c+' / 30';
+  document.getElementById('scoreBar').style.width=(c/30*100)+'%';
+}
+
+function buildMC(){
+  const cont=document.getElementById('mcContainer');
+  cont.innerHTML='';
+  MC.forEach((q,qi)=>{
+    const letters=['A','B','C','D'];
+    const optsHTML=q.opts.map((o,oi)=>`
+      <button class="mc-ch" id="mc-opt-${qi}-${oi}" onclick="pickMC(${qi},${oi})">
+        <span class="opt-l" id="mc-optl-${qi}-${oi}">${letters[oi]}</span>
+        <span>${o}</span>
+      </button>`).join('');
+    const stepsHTML=q.steps.map(s=>`<li>${s}</li>`).join('');
+    const warnHTML=q.warn?`<div style="background:#fbbf240f;border-left:3px solid #fbbf24;border-radius:0 6px 6px 0;padding:10px 14px;margin-top:10px;font-size:13px;line-height:1.6;color:var(--text-dim)">⚠️ ${q.warn}</div>`:'';
+    const div=document.createElement('div');
+    div.className='mc-block';
+    div.id='mc-block-'+qi;
+    div.innerHTML=`
+      <div class="mc-qh">
+        <div class="mc-num" id="mc-num-${qi}">${q.n}</div>
+        <div class="mc-qt">${q.q}</div>
+      </div>
+      <div class="mc-opts">${optsHTML}</div>
+      <div id="mc-result-${qi}" style="display:none;padding:0 18px 8px;display:none">
+        <span class="rbadge" id="mc-badge-${qi}"></span>
+        <button id="mc-exbtn-${qi}" class="tex-btn" onclick="toggleExplain(${qi})" style="margin-left:8px">Show explanation ▼</button>
+      </div>
+      <div id="mc-explain-${qi}" class="mc-ex">${q.title ? '<h4>'+q.title+'</h4>' : ''}<ul class="slist">${stepsHTML}</ul>${warnHTML}</div>`;
+    cont.appendChild(div);
+  });
+}
+
+function pickMC(qi,oi){
+  if(mcState[qi])return;
+  const q=MC[qi];
+  const isC=oi===q.ans;
+  mcState[qi]=isC?'correct':'wrong';
+  const block=document.getElementById('mc-block-'+qi);
+  block.style.borderColor=isC?'#34d39966':'#f8717166';
+  const numEl=document.getElementById('mc-num-'+qi);
+  numEl.style.background=isC?'#34d39933':'#f8717133';
+  numEl.style.color=isC?'#34d399':'#f87171';
+  numEl.textContent=isC?'✓':'✗';
+  q.opts.forEach((_,i)=>{
+    const btn=document.getElementById('mc-opt-'+qi+'-'+i);
+    const lbl=document.getElementById('mc-optl-'+qi+'-'+i);
+    btn.disabled=true;
+    if(i===q.ans&&i===oi){btn.style.borderColor='#34d399';btn.style.background='#34d3990f';btn.style.color='#34d399';lbl.style.background='#34d399';lbl.style.color='#0f1117';}
+    else if(i===oi){btn.style.borderColor='#f87171';btn.style.background='#f871710f';btn.style.color='#f87171';lbl.style.background='#f87171';lbl.style.color='#0f1117';}
+    else if(i===q.ans){btn.style.borderColor='#34d39966';btn.style.color='#34d399';lbl.style.background='#34d39933';lbl.style.color='#34d399';}
+    else{btn.style.opacity='0.35';}
+  });
+  const rr=document.getElementById('mc-result-'+qi);
+  rr.style.display='flex';
+  rr.style.alignItems='center';
+  rr.style.padding='0 18px 12px';
+  const badge=document.getElementById('mc-badge-'+qi);
+  badge.className='rbadge '+(isC?'rc2':'rw2');
+  badge.textContent=isC?'✓ Correct!':'✗ Incorrect — correct answer highlighted in green';
+  updateScore();
+}
+
+function toggleExplain(qi){
+  const el=document.getElementById('mc-explain-'+qi);
+  const btn=document.getElementById('mc-exbtn-'+qi);
+  const showing=el.style.display==='block';
+  el.style.display=showing?'none':'block';
+  btn.textContent=showing?'Show explanation ▼':'Hide explanation ▲';
+}
+
+function buildFR(){
+  const cont=document.getElementById('frContainer');
+  cont.innerHTML='';
+  FR.forEach((q,qi)=>{
+    const partsHTML=q.parts.map((p,pi)=>{
+      const choicesHTML=p.choices.map((c,ci)=>`
+        <div class="fr-vo" id="fr-opt-${qi}-${pi}-${ci}" onclick="pickFR(${qi},${pi},${ci})" style="cursor:pointer">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:4px">Option ${ci+1}</div>
+          <div style="font-family:'Courier New',monospace;font-size:12px;color:var(--text-dim);line-height:1.5;white-space:pre-line">${c.preview}</div>
+        </div>`).join('');
+      return `
+        <div style="border-bottom:1px solid #2e335288;padding:16px 18px" id="fr-part-${qi}-${pi}">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);margin-bottom:8px">${p.label}</div>
+          <div style="font-size:14px;line-height:1.65;color:var(--text);margin-bottom:14px">${p.q}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px" id="fr-grid-${qi}-${pi}">${choicesHTML}</div>
+          <div id="fr-result-${qi}-${pi}" style="display:none;margin-bottom:10px"></div>
+          <div id="fr-sol-${qi}-${pi}" style="display:none"></div>
+        </div>`;
+    }).join('');
+    const div=document.createElement('div');
+    div.className='fr-block';
+    div.id='fr-block-'+qi;
+    div.innerHTML=`
+      <div class="fr-hdr" onclick="toggleFR(${qi})">
+        <div class="fr-num">${q.n}</div>
+        <div class="fr-tw">
+          <div class="fr-ttl">${q.title}</div>
+          <div class="fr-pts">${q.pts} points total</div>
+        </div>
+        <span class="fr-chv">&#9654;</span>
+      </div>
+      <div class="fr-body" id="fr-body-${qi}">${partsHTML}</div>`;
+    cont.appendChild(div);
+  });
+}
+
+function toggleFR(qi){
+  const body=document.getElementById('fr-body-'+qi);
+  const chv=document.querySelector('#fr-block-'+qi+' .fr-chv');
+  const open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  chv.style.transform=open?'':'rotate(90deg)';
+}
+
+function pickFR(qi,pi,ci){
+  const key=qi+'-'+pi;
+  if(frState[key])return;
+  const p=FR[qi].parts[pi];
+  const isC=p.choices[ci].correct;
+  frState[key]=isC?'correct':'wrong';
+
+  // Style all options
+  p.choices.forEach((c,i)=>{
+    const opt=document.getElementById('fr-opt-'+qi+'-'+pi+'-'+i);
+    opt.onclick=null;
+    opt.style.cursor='default';
+    if(i===ci&&isC){
+      opt.style.borderColor='#34d399';opt.style.background='#34d3990d';
+    } else if(i===ci){
+      opt.style.borderColor='#f87171';opt.style.background='#f871710d';
+    } else if(c.correct){
+      opt.style.borderColor='#34d39966';opt.style.background='#34d39907';
+    } else {
+      opt.style.opacity='0.35';
+    }
+  });
+
+  // Show result badge
+  const rr=document.getElementById('fr-result-'+qi+'-'+pi);
+  rr.style.display='block';
+  rr.innerHTML='<span class="rbadge '+(isC?'rc2':'rw2')+'">'+(isC?'✓ Correct approach!':'✗ Not quite — see the correct method highlighted above')+'</span>';
+
+  // Build and show solution
+  const solDiv=document.getElementById('fr-sol-'+qi+'-'+pi);
+  const s=p.sol||{};
+  // Find the correct choice explanation
+  const correctChoice=p.choices.find(c=>c.correct);
+  const pickedChoice=p.choices[ci];
+
+  let solHTML='<div style="margin-top:10px;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">';
+  solHTML+='<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#34d399;margin-bottom:10px">&#128203; Full Explanation</div>';
+
+  // Show what you picked if wrong
+  if(!isC){
+    solHTML+='<div style="margin-bottom:12px;padding:10px 12px;background:#f871710d;border-left:3px solid #f87171;border-radius:0 6px 6px 0">';
+    solHTML+='<div style="font-size:11px;font-weight:700;color:#f87171;text-transform:uppercase;margin-bottom:4px">Why Option '+(ci+1)+' is incorrect</div>';
+    solHTML+='<div style="font-size:13px;line-height:1.65;color:var(--text)">'+pickedChoice.explain+'</div>';
+    solHTML+='</div>';
+  }
+
+  // Always show correct explanation
+  solHTML+='<div style="padding:10px 12px;background:#34d3990d;border-left:3px solid #34d399;border-radius:0 6px 6px 0">';
+  solHTML+='<div style="font-size:11px;font-weight:700;color:#34d399;text-transform:uppercase;margin-bottom:4px">'+( isC ? 'Why this is correct' : 'Why the correct answer works')+'</div>';
+  solHTML+='<div style="font-size:13px;line-height:1.65;color:var(--text)">'+correctChoice.explain+'</div>';
+  solHTML+='</div>';
+  solHTML+='</div>';
+
+  solDiv.innerHTML=solHTML;
+  solDiv.style.display='block';
+}
+
+function scrollTo2(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const m={flashcards:0,topics:1,exam:2};
+  document.querySelectorAll('.nav-btn')[m[id]].classList.add('active');
+  window.scrollTo(0,0);
+}
+
+buildMC();buildFR();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
